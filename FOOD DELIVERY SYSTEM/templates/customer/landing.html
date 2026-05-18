@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Unifood — Food Delivery</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body> <!-- Navbar -->
+<nav class="customer-nav"> <div class="nav-inner"> <a class="nav-logo" href="{{ url_for('customer.landing') }}">Uni<span>Food</span></a> <form class="nav-search" action="{{ url_for('customer.landing') }}" method="GET"> <span class="search-icon"></span> <input type="text" name="search" placeholder="Search restaurants..."
+             value="{{ search or '' }}"> </form> <div class="nav-actions"> {% if session.get('customer_id') %} <a href="{{ url_for('customer.orders') }}" class="btn btn-outline btn-sm"> Orders</a> <a href="{{ url_for('customer.profile') }}" class="btn btn-outline btn-sm"> Profile</a> <a href="{{ url_for('customer.logout') }}" class="btn btn-dark btn-sm">Logout</a> {% else %} <a href="{{ url_for('customer.login') }}" class="btn btn-outline btn-sm">Login</a> <a href="{{ url_for('customer.register') }}" class="btn btn-primary btn-sm">Sign Up</a> {% endif %} </div> </div>
+</nav> {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %} <div class="flashes"> {% for cat, msg in messages %} <div class="flash flash-{{ 'success' if cat == 'success' else 'error' }}">{{ msg }}</div> {% endfor %} </div> <script>setTimeout(()=>document.querySelectorAll('.flash').forEach(f=>f.remove()),4000)</script> {% endif %}
+{% endwith %} <!-- Hero -->
+<div class="hero"> <h1>Delicious Food, Delivered Fast </h1> <p>Order from your favorite local restaurants</p> <form class="hero-search" action="{{ url_for('customer.landing') }}" method="GET"> <input type="text" name="search" placeholder="Search for restaurants or cuisine..."
+           value="{{ search or '' }}"> <button type="submit">Search</button> </form>
+</div> <!-- Restaurants -->
+<div class="main-content"> {% if search %} <p class="mb-2 text-gray"> Showing results for "<strong>{{ search }}</strong>" — {{ vendors|length }} restaurant(s) found <a href="{{ url_for('customer.landing') }}" style="margin-left:.5rem;color:#22c55e;">Clear</a> </p> {% else %} <h2 class="section-title" style="margin-bottom:1rem;"> Restaurants Near You</h2> {% endif %}
+
+  {% if vendors %} <div class="restaurant-grid"> {% for vendor in vendors %} <div class="restaurant-card"> <a href="{{ url_for('customer.restaurant', vendor_id=vendor.id) }}"> <div style="position:relative;"> {% if vendor.cover_banner %} <img src="{{ url_for('static', filename=vendor.cover_banner) }}" class="restaurant-img" alt="{{ vendor.shop_name }}"> {% else %} <div class="restaurant-img-placeholder"></div> {% endif %} {% if vendor.shop_logo %} <img src="{{ url_for('static', filename=vendor.shop_logo) }}" alt="{{ vendor.shop_name }} logo" style="position:absolute;bottom:-18px;left:12px;width:44px;height:44px;border-radius:50%;border:2px solid #fff;object-fit:cover;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.15);"> {% endif %} </div> <div class="restaurant-info" style="{% if vendor.shop_logo %}padding-top:1.5rem;{% endif %}"> <div class="restaurant-name">{{ vendor.shop_name }}</div> <div class="restaurant-meta"> {% if vendor.address %} {{ vendor.address }}{% endif %} </div> {% if vendor.description %} <div class="restaurant-meta" style="margin-top:.3rem;"> {{ vendor.description[:80] }}{% if vendor.description|length > 80 %}...{% endif %} </div> {% endif %} <div class="restaurant-status"> <span class="badge badge-success"> Open</span> <span class="badge badge-gray" style="margin-left:.3rem;"> {{ vendor.menu_items|length }} items </span> </div> </div> </a> </div> {% endfor %} </div> {% else %} <div style="text-align:center;padding:4rem 1rem;"> <div style="font-size:4rem;margin-bottom:1rem;"></div> <h2>No restaurants found</h2> <p class="text-gray mt-1">Try a different search or check back later.</p> </div> {% endif %}
+</div> <!-- Footer -->
+<footer style="background:#111827;color:#9ca3af;text-align:center;padding:2rem;margin-top:3rem;font-size:.85rem;"> <div style="font-size:1.2rem;font-weight:700;color:#22c55e;margin-bottom:.5rem;">Unifood</div> Food Delivery System &copy; 2026 &nbsp;|&nbsp; <a href="{{ url_for('vendor.login') }}" style="color:#9ca3af;">For Vendors</a> &nbsp;|&nbsp; <a href="{{ url_for('rider.apply') }}" style="color:#9ca3af;">Become a Rider</a>
+</footer>
+</body>
+</html>

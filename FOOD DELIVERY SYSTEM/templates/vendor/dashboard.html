@@ -1,0 +1,103 @@
+{% extends 'vendor/base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block content %}
+
+<div class="page-header flex-between" style="margin-bottom:1.5rem;">
+  <div>
+    <h2 style="margin-bottom:.2rem;">Welcome, {{ vendor.shop_name }}</h2>
+    <p style="color:#6b7280;font-size:.9rem;">Here's an overview of your restaurant today.</p>
+  </div>
+  <a href="{{ url_for('vendor.item_add') }}" class="btn btn-primary">+ Add Item</a>
+</div>
+
+<!-- Stats -->
+<div class="v-stats-grid">
+  <div class="v-stat warning">
+    <div class="v-stat-label">Pending</div>
+    <div class="v-stat-value">{{ stats.pending }}</div>
+  </div>
+  <div class="v-stat info">
+    <div class="v-stat-label">Preparing</div>
+    <div class="v-stat-value">{{ stats.preparing }}</div>
+  </div>
+  <div class="v-stat">
+    <div class="v-stat-label">Ready</div>
+    <div class="v-stat-value">{{ stats.ready }}</div>
+  </div>
+  <div class="v-stat">
+    <div class="v-stat-label">Delivered</div>
+    <div class="v-stat-value">{{ stats.delivered }}</div>
+  </div>
+  <div class="v-stat info">
+    <div class="v-stat-label">Menu Items</div>
+    <div class="v-stat-value">{{ stats.total_items }}</div>
+  </div>
+</div>
+
+<!-- Quick actions -->
+<div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:1.75rem;">
+  <a href="{{ url_for('vendor.item_add') }}" class="btn btn-primary">Add Menu Item</a>
+  <a href="{{ url_for('vendor.shop') }}" class="btn btn-outline">Shop Settings</a>
+  <a href="{{ url_for('vendor.categories') }}" class="btn btn-outline">Categories</a>
+  <a href="{{ url_for('vendor.orders') }}" class="btn btn-dark">View All Orders</a>
+</div>
+
+<!-- Recent orders -->
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">Recent Orders</span>
+    <a href="{{ url_for('vendor.orders') }}" class="btn btn-outline btn-sm">View All</a>
+  </div>
+  {% if recent_orders %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Customer</th>
+          <th>Items</th>
+          <th>Total</th>
+          <th>Payment</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for order in recent_orders %}
+        <tr>
+          <td><strong>#{{ order.id }}</strong></td>
+          <td>{{ order.customer.name }}</td>
+          <td style="font-size:.8rem;max-width:200px;">
+            {% for item in order.items %}{{ item.quantity }}× {{ item.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+          </td>
+          <td><strong>₱{{ '%.2f'|format(order.total) }}</strong></td>
+          <td><span class="badge badge-info">{{ order.payment_method|upper }}</span></td>
+          <td><span class="badge status-{{ order.status }}">{{ order.status.replace('_',' ').title() }}</span></td>
+          <td>
+            <div class="actions">
+              {% if order.status == 'pending' %}
+              <form method="POST" action="{{ url_for('vendor.order_confirm', order_id=order.id) }}">
+                <button class="btn btn-primary btn-sm">Confirm</button>
+              </form>
+              {% elif order.status == 'confirmed' %}
+              <form method="POST" action="{{ url_for('vendor.order_prepare', order_id=order.id) }}">
+                <button class="btn btn-warning btn-sm">Prepare</button>
+              </form>
+              {% elif order.status == 'preparing' %}
+              <form method="POST" action="{{ url_for('vendor.order_ready', order_id=order.id) }}">
+                <button class="btn btn-info btn-sm">Ready</button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-center text-gray" style="padding:2.5rem;">No orders yet. Share your restaurant with customers!</p>
+  {% endif %}
+</div>
+{% endblock %}

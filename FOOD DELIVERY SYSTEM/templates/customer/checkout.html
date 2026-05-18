@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Checkout — UniFood</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  .shipping-row { color:#1d4ed8; font-weight:500; }
+  .fee-note { font-size:.72rem; color:#6b7280; }
+  #mapSection { margin-top:1rem; }
+  #deliveryMap { height:200px; border-radius:10px; border:1.5px solid #e5e7eb; }
+  #mapHint { font-size:.72rem; color:#6b7280; margin-top:.3rem; }
+</style>
+</head>
+<body>
+<nav class="customer-nav">
+  <div class="nav-inner">
+    <a class="nav-logo" href="{{ url_for('customer.landing') }}">Uni<span>Food</span></a>
+    <div class="nav-actions" style="margin-left:auto;">
+      <span style="font-size:.9rem;color:#6b7280;">{{ customer.name }}</span>
+      <a href="{{ url_for('customer.logout') }}" class="btn btn-dark btn-sm">Logout</a>
+    </div>
+  </div>
+</nav>
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div class="flashes">
+  {% for cat, msg in messages %}
+  <div class="flash flash-{{ 'success' if cat == 'success' else 'error' }}">{{ msg }}</div>
+  {% endfor %}
+</div>
+<script>setTimeout(()=>document.querySelectorAll('.flash').forEach(f=>f.remove()),4000)</script>
+{% endif %}
+{% endwith %}
+<div style="max-width:1000px;margin:0 auto;padding:1.5rem;">
+  <h2 style="margin-bottom:1.5rem;">Checkout</h2>
+  <div id="emptyCartMsg" class="card text-center" style="display:none;padding:3rem;">
+    <h3>Your cart is empty</h3>
+    <p class="text-gray mt-1">Go back and add items to your cart.</p>
+    <a href="{{ url_for('customer.landing') }}" class="btn btn-primary mt-2">Browse Restaurants</a>
+  </div>
+  <div id="checkoutContent" class="checkout-layout">
+    <!-- LEFT: delivery info -->
+    <div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Delivery Address</span></div>
+        <div class="form-group">
+          <label>Street / Unit / Building *</label>
+          <input type="text" id="deliveryAddress" value="{{ customer.address or '' }}" placeholder="e.g. 12 Mabini St., Unit 3A" required>
+        </div>
+        <div class="form-group">
+          <label>City *</label>
+          <select id="citySelect" onchange="onCityChange()">
+            <option value="">-- Select City --</option>
+            <option value="Makati City" {{ 'selected' if customer.city == 'Makati City' }}>Makati City</option>
+            <option value="Taguig City" {{ 'selected' if customer.city == 'Taguig City' }}>Taguig City</option>
+          </select>
+        </div>
+        <div id="barangaySection">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Barangay *</label>
+              <select id="barangaySelect" onchange="onBarangayChange()">
+                <option value="">-- Select Barangay --</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Postal Code</label>
+              <input type="text" id="postalInput" readonly placeholder="Auto-filled" style="background:#f9fafb;">
+            </div>
+          </div>
+        </div>
+        <div id="mapSection" style="display:none;">
+          <div id="deliveryMap"></div>
+          <div id="mapHint">Drag the pin to your exact delivery location.</div>
+          <input type="hidden" id="pinLat">
+          <input type="hidden" id="pinLng">
+        </div>
+        <div class="form-group" style="margin-top:.5rem;">
+          <label>Delivery Notes (optional)</label>
+          <textarea id="orderNotes" rows="2" placeholder="e.g. Leave at door, call on arrival..."></textarea>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Payment Method</span></div>
+        <div class="payment-options">
+          <label class="payment-option selected" id="paymentCOD" onclick="selectPayment('cod')">
+            <input type="radio" name="payment" value="cod" checked>
+            <div class="payment-label">Cash on Delivery</div>
+            <div style="font-size:.78rem;color:#6b7280;margin-top:.2rem;">Pay when delivered</div>
+          </label>
+          <label class="payment-option" id="paymentGcash" onclick="selectPayment('gcash')">
+            <input type="radio" name="payment" value="gcash">
+            <div class="payment-label">GCash</div>
+            <div style="font-size:.78rem;color:#6b7280;margin-top:.2rem;">Mobile wallet payment</div>
+          </label>
+        </div>
+        <div id="gcashDetails" style="display:none;margin-top:1rem;">
+          <div style="background:#f0fdf4;border-radius:8px;padding:1rem;font-size:.85rem;">
+            <p style="margin-bottom:.6rem;font-weight:600;color:#15803d;">Send payment to GCash:</p>
+            <p style="font-size:1rem;font-weight:800;color:#111827;letter-spacing:.04em;">09XX-XXX-XXXX</p>
+            <p style="font-size:.78rem;color:#6b7280;margin-top:.2rem;">Account name: UniFood Payments</p>
+            <p style="font-size:.78rem;color:#15803d;margin-top:.5rem;font-weight:600;">Payment will be confirmed by the rider upon delivery.</p>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Voucher Code</span></div>
+        <div style="display:flex;gap:.5rem;">
+          <input type="text" id="voucherCode" placeholder="Enter voucher code" style="flex:1;padding:.6rem 1rem;border:2px solid #e5e7eb;border-radius:8px;">
+          <button class="btn btn-outline" onclick="applyVoucher()">Apply</button>
+        </div>
+        <div id="voucherMsg" style="margin-top:.6rem;font-size:.85rem;"></div>
+      </div>
+    </div>
+    <!-- RIGHT: order summary -->
+    <div>
+      <div class="cart-sidebar" style="position:sticky;top:80px;">
+        <div class="cart-title">Order Summary</div>
+        <div id="summaryRestaurant" style="font-size:.85rem;color:#6b7280;margin-bottom:.8rem;"></div>
+        <div class="cart-items" id="summaryItems"></div>
+        <div class="cart-totals">
+          <div class="cart-total-row"><span>Food Subtotal</span><span id="summarySubtotal">&#8369;0.00</span></div>
+          <div class="cart-total-row discount" id="discountRow" style="display:none;"><span>Voucher Discount</span><span id="summaryDiscount">-&#8369;0.00</span></div>
+          <div class="cart-total-row shipping-row">
+            <span>Delivery Fee <span id="distLabel" class="fee-note"></span></span>
+            <span id="summaryShipping">&#8369;30.00</span>
+          </div>
+          <div class="cart-total-row grand"><span>Grand Total</span><span id="summaryTotal">&#8369;0.00</span></div>
+        </div>
+        <button class="btn btn-primary btn-full btn-lg" onclick="placeOrder()">Place Order</button>
+        <p style="font-size:.75rem;color:#9ca3af;text-align:center;margin-top:.5rem;">By placing your order, you agree to our terms of service.</p>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="successModal" class="modal-overlay hidden">
+  <div class="modal" style="text-align:center;">
+    <h2>Order Placed!</h2>
+    <p class="text-gray mt-1">Your order has been sent to the restaurant.</p>
+    <div style="background:#f0fdf4;border-radius:8px;padding:1rem;margin:1rem 0;font-size:.95rem;">Order #<strong id="successOrderId"></strong></div>
+    <a href="{{ url_for('customer.orders') }}" class="btn btn-primary btn-full btn-lg">View My Orders</a>
+  </div>
+</div>
+<script>
+var CART_KEY = 'qb_cart';
+var cart = JSON.parse(localStorage.getItem(CART_KEY) || '{}');
+var currentDiscount = 0;
+var currentShipping = 30;
+var currentDistKm   = 0;
+
+// Pre-saved customer location
+var CUSTOMER_SAVED_CITY     = "{{ customer.city or '' }}";
+var CUSTOMER_SAVED_BARANGAY = "{{ customer.barangay or '' }}";
+
+var MAKATI_BARANGAYS = [
+  {v:'Bangkal',d:'Bangkal',p:'1233'},{v:'Bel-Air',d:'Bel-Air',p:'1209'},
+  {v:'Carmona',d:'Carmona',p:'1208'},{v:'Cembo',d:'Cembo',p:'1212'},
+  {v:'Comembo',d:'Comembo',p:'1212'},{v:'Dasmarias',d:'Dasmari\u00f1as',p:'1222'},
+  {v:'East Rembo',d:'East Rembo',p:'1212'},{v:'Forbes Park',d:'Forbes Park',p:'1209'},
+  {v:'Guadalupe Nuevo',d:'Guadalupe Nuevo',p:'1212'},{v:'Guadalupe Viejo',d:'Guadalupe Viejo',p:'1212'},
+  {v:'Kasilawan',d:'Kasilawan',p:'1212'},{v:'La Paz',d:'La Paz',p:'1204'},
+  {v:'Magallanes',d:'Magallanes',p:'1232'},{v:'Olympia',d:'Olympia',p:'1207'},
+  {v:'Palanan',d:'Palanan',p:'1235'},{v:'Pembo',d:'Pembo',p:'1218'},
+  {v:'Pinagkaisahan',d:'Pinagkaisahan',p:'1212'},{v:'Pio Del Pilar',d:'Pio Del Pilar',p:'1230'},
+  {v:'Pitogo',d:'Pitogo',p:'1212'},{v:'Poblacion',d:'Poblacion',p:'1210'},
+  {v:'Post Proper Northside',d:'Post Proper Northside',p:'1218'},
+  {v:'Post Proper Southside',d:'Post Proper Southside',p:'1218'},
+  {v:'Rizal',d:'Rizal',p:'1212'},{v:'San Antonio',d:'San Antonio',p:'1203'},
+  {v:'San Isidro',d:'San Isidro',p:'1234'},{v:'San Lorenzo',d:'San Lorenzo',p:'1223'},
+  {v:'Santa Cruz',d:'Santa Cruz',p:'1219'},{v:'Singkamas',d:'Singkamas',p:'1208'},
+  {v:'South Cembo',d:'South Cembo',p:'1212'},{v:'Tejeros',d:'Tejeros',p:'1212'},
+  {v:'Urdaneta',d:'Urdaneta',p:'1224'},{v:'Valenzuela',d:'Valenzuela',p:'1212'},
+  {v:'West Rembo',d:'West Rembo',p:'1212'},{v:'UMak Campus',d:'UMak Campus',p:'1221'}
+];
+var TAGUIG_BARANGAYS = [
+  {v:'Bagong Tanyag',d:'Bagong Tanyag',p:'1636'},{v:'Bambang',d:'Bambang',p:'1630'},
+  {v:'Bagumbayan',d:'Bagumbayan',p:'1634'},{v:'Calzada',d:'Calzada',p:'1631'},
+  {v:'Central Bicutan',d:'Central Bicutan',p:'1631'},
+  {v:'Central Signal Village',d:'Central Signal Village',p:'1631'},
+  {v:'Eastern Bicutan',d:'Eastern Bicutan',p:'1630'},
+  {v:'Fort Bonifacio',d:'Fort Bonifacio / BGC',p:'1634'},
+  {v:'Hagonoy',d:'Hagonoy',p:'1632'},{v:'Ibayo-Tipas',d:'Ibayo-Tipas',p:'1633'},
+  {v:'Katuparan',d:'Katuparan',p:'1636'},{v:'Ligid-Tipas',d:'Ligid-Tipas',p:'1633'},
+  {v:'Lower Bicutan',d:'Lower Bicutan',p:'1630'},{v:'Maharlika Village',d:'Maharlika Village',p:'1634'},
+  {v:'Napindan',d:'Napindan',p:'1637'},{v:'New Lower Bicutan',d:'New Lower Bicutan',p:'1630'},
+  {v:'North Daang Hari',d:'North Daang Hari',p:'1638'},
+  {v:'North Signal Village',d:'North Signal Village',p:'1632'},
+  {v:'Palingon',d:'Palingon',p:'1634'},{v:'Pinagsama',d:'Pinagsama',p:'1631'},
+  {v:'San Miguel',d:'San Miguel',p:'1635'},{v:'South Daang Hari',d:'South Daang Hari',p:'1638'},
+  {v:'South Signal Village',d:'South Signal Village',p:'1631'},
+  {v:'Sta. Ana',d:'Sta. Ana',p:'1635'},{v:'Tanyag',d:'Tanyag',p:'1636'},
+  {v:'Tuktukan',d:'Tuktukan',p:'1637'},{v:'Upper Bicutan',d:'Upper Bicutan',p:'1631'},
+  {v:'Ususan',d:'Ususan',p:'1636'},{v:'Wawa',d:'Wawa',p:'1637'},
+  {v:'Western Bicutan',d:'Western Bicutan',p:'1630'}
+];
+
+function onCityChange() {
+  var city = document.getElementById('citySelect').value;
+  var sel  = document.getElementById('barangaySelect');
+  sel.innerHTML = '<option value="">-- Select Barangay --</option>';
+  document.getElementById('postalInput').value = '';
+  document.getElementById('mapSection').style.display = 'none';
+  if (!city) { resetShipping(); return; }
+  var list = (city === 'Makati City') ? MAKATI_BARANGAYS : TAGUIG_BARANGAYS;
+  list.forEach(function(b) {
+    var opt = document.createElement('option');
+    opt.value = b.v;
+    opt.dataset.postal = b.p;
+    opt.dataset.city = city;
+    opt.textContent = b.d;
+    sel.appendChild(opt);
+  });
+  resetShipping();
+}
+
+function onBarangayChange() {
+  var sel = document.getElementById('barangaySelect');
+  var opt = sel.options[sel.selectedIndex];
+  document.getElementById('postalInput').value = opt.dataset.postal || '';
+  fetchShippingFee(sel.value);
+  // Update map
+  var coords = BARANGAY_COORDS[sel.value];
+  if (coords) {
+    document.getElementById('mapSection').style.display = '';
+    if (!deliveryMap) initMap(coords[0], coords[1]);
+    else {
+      deliveryMap.setView([coords[0], coords[1]], 16);
+      deliveryMarker.setLatLng([coords[0], coords[1]]);
+    }
+    document.getElementById('pinLat').value = coords[0];
+    document.getElementById('pinLng').value = coords[1];
+  }
+}
+
+// Barangay center coordinates (for map)
+var BARANGAY_COORDS = {
+  'Bangkal':[14.5342,121.0062],'Bel-Air':[14.5660,121.0130],
+  'Carmona':[14.5608,121.0040],'Cembo':[14.5471,121.0582],
+  'Comembo':[14.5420,121.0572],'Dasmarias':[14.5750,121.0170],
+  'East Rembo':[14.5432,121.0578],'Forbes Park':[14.5600,121.0120],
+  'Guadalupe Nuevo':[14.5621,121.0392],'Guadalupe Viejo':[14.5640,121.0361],
+  'Kasilawan':[14.5430,121.0570],'La Paz':[14.5540,121.0012],
+  'Magallanes':[14.5351,121.0022],'Olympia':[14.5770,121.0090],
+  'Palanan':[14.5440,121.0011],'Pembo':[14.5451,121.0591],
+  'Pinagkaisahan':[14.5411,121.0562],'Pio Del Pilar':[14.5491,121.0072],
+  'Pitogo':[14.5431,121.0591],'Poblacion':[14.5651,121.0321],
+  'Post Proper Northside':[14.5431,121.0622],'Post Proper Southside':[14.5391,121.0622],
+  'Rizal':[14.5452,121.0601],'San Antonio':[14.5701,121.0091],
+  'San Isidro':[14.5341,121.0112],'San Lorenzo':[14.5621,121.0201],
+  'Santa Cruz':[14.5331,121.0121],'Singkamas':[14.5601,121.0011],
+  'South Cembo':[14.5451,121.0571],'Tejeros':[14.5401,121.0551],
+  'Urdaneta':[14.5621,121.0222],'Valenzuela':[14.5401,121.0581],
+  'West Rembo':[14.5451,121.0561],'UMak Campus':[14.5547,121.0244],
+  'Fort Bonifacio':[14.5444,121.0531],'Western Bicutan':[14.5121,121.0531],
+  'Eastern Bicutan':[14.5091,121.0781],'Central Bicutan':[14.5101,121.0641],
+  'Ususan':[14.4821,121.0851],'Tuktukan':[14.5241,121.0621],
+  'Sta. Ana':[14.5061,121.0761],'Calzada':[14.5111,121.0711],
+  'Hagonoy':[14.5071,121.0631],'Ibayo-Tipas':[14.5271,121.0701],
+  'Ligid-Tipas':[14.5221,121.0731],'Lower Bicutan':[14.5061,121.0711],
+  'New Lower Bicutan':[14.5071,121.0721],'North Daang Hari':[14.4901,121.0661],
+  'North Signal Village':[14.5011,121.0611],'Palingon':[14.5301,121.0521],
+  'Pinagsama':[14.5211,121.0641],'South Daang Hari':[14.4821,121.0641],
+  'South Signal Village':[14.5001,121.0611],'Tanyag':[14.4811,121.0811],
+  'Upper Bicutan':[14.5111,121.0731],'Wawa':[14.5221,121.0761],
+  'Central Signal Village':[14.5011,121.0621],'Maharlika Village':[14.4921,121.0781],
+  'Bagong Tanyag':[14.4811,121.0801],'Bagumbayan':[14.5181,121.0721],
+  'Katuparan':[14.4961,121.0741],'Bambang':[14.5151,121.0671],
+  'San Miguel':[14.5101,121.0601],'Napindan':[14.5271,121.0821]
+};
+
+var deliveryMap = null;
+var deliveryMarker = null;
+function initMap(lat, lng) {
+  deliveryMap = L.map('deliveryMap').setView([lat, lng], 16);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
+  }).addTo(deliveryMap);
+  deliveryMarker = L.marker([lat, lng], { draggable: true }).addTo(deliveryMap);
+  deliveryMarker.on('dragend', function() {
+    var p = deliveryMarker.getLatLng();
+    document.getElementById('pinLat').value = p.lat.toFixed(6);
+    document.getElementById('pinLng').value = p.lng.toFixed(6);
+  });
+}
+
+// On page load: if customer has a saved city, pre-populate barangay list and select saved barangay
+(function initSavedLocation() {
+  if (!CUSTOMER_SAVED_CITY) return;
+  // onCityChange reads #citySelect value — it's already pre-selected via Jinja `selected`
+  onCityChange();
+  if (CUSTOMER_SAVED_BARANGAY) {
+    var sel = document.getElementById('barangaySelect');
+    for (var i = 0; i < sel.options.length; i++) {
+      if (sel.options[i].value === CUSTOMER_SAVED_BARANGAY) {
+        sel.selectedIndex = i;
+        onBarangayChange();
+        break;
+      }
+    }
+  }
+})();
+
+function resetShipping() {
+  currentShipping = 30;
+  currentDistKm   = 0;
+  document.getElementById('summaryShipping').textContent = '\u20B1' + currentShipping.toFixed(2);
+  document.getElementById('distLabel').textContent = '';
+  renderSummary();
+}
+
+async function fetchShippingFee(barangay) {
+  if (!barangay || !cart.vendor_id) { resetShipping(); return; }
+  var items = cart.items || {};
+  var itemCount = Object.values(items).reduce(function(s,i){ return s + i.quantity; }, 0);
+  try {
+    var res = await fetch("{{ url_for('customer.estimate_shipping') }}", {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ vendor_id: cart.vendor_id, customer_barangay: barangay, item_count: itemCount })
+    });
+    var data = await res.json();
+    currentShipping = data.shipping_fee || 30;
+    currentDistKm   = data.distance_km  || 0;
+    document.getElementById('summaryShipping').textContent = '\u20B1' + currentShipping.toFixed(2);
+    document.getElementById('distLabel').textContent = currentDistKm > 0 ? '(' + currentDistKm.toFixed(1) + ' km)' : '';
+    renderSummary();
+  } catch(e) { resetShipping(); }
+}
+
+function renderSummary() {
+  var items = cart.items || {};
+  var keys  = Object.keys(items);
+  var emptyMsg = document.getElementById('emptyCartMsg');
+  var content  = document.getElementById('checkoutContent');
+  if (keys.length === 0) { emptyMsg.style.display = ''; content.style.display = 'none'; return; }
+  document.getElementById('summaryRestaurant').textContent = cart.vendor_name || '';
+  var itemsEl = document.getElementById('summaryItems');
+  itemsEl.innerHTML = '';
+  var subtotal = 0;
+  keys.forEach(function(id) {
+    var item = items[id];
+    subtotal += item.price * item.quantity;
+    var div = document.createElement('div');
+    div.className = 'cart-item';
+    div.innerHTML = '<div><div class="cart-item-name">' + item.name + '</div>'
+      + '<div class="cart-item-qty">' + item.quantity + ' x \u20B1' + item.price.toFixed(2) + '</div></div>'
+      + '<span class="cart-item-price">\u20B1' + (item.price * item.quantity).toFixed(2) + '</span>';
+    itemsEl.appendChild(div);
+  });
+  var foodTotal = Math.max(0, subtotal - currentDiscount);
+  var grand     = foodTotal + currentShipping;
+  document.getElementById('summarySubtotal').textContent = '\u20B1' + subtotal.toFixed(2);
+  document.getElementById('summaryShipping').textContent = '\u20B1' + currentShipping.toFixed(2);
+  document.getElementById('summaryTotal').textContent    = '\u20B1' + grand.toFixed(2);
+}
+
+var selectedPayment = 'cod';
+function selectPayment(method) {
+  selectedPayment = method;
+  document.getElementById('paymentCOD').classList.toggle('selected', method === 'cod');
+  document.getElementById('paymentGcash').classList.toggle('selected', method === 'gcash');
+  document.getElementById('gcashDetails').style.display = method === 'gcash' ? '' : 'none';
+}
+
+async function applyVoucher() {
+  var code = document.getElementById('voucherCode').value.trim();
+  if (!code) return;
+  var items    = cart.items || {};
+  var subtotal = Object.values(items).reduce(function(s,i){ return s + i.price * i.quantity; }, 0);
+  var res  = await fetch("{{ url_for('customer.validate_voucher') }}", {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ code: code, subtotal: subtotal })
+  });
+  var data = await res.json();
+  var msgEl = document.getElementById('voucherMsg');
+  if (data.valid) {
+    currentDiscount = data.discount;
+    msgEl.innerHTML = '<span style="color:#16a34a;">\u2713 ' + data.message + '</span>';
+    document.getElementById('discountRow').style.display = '';
+    document.getElementById('summaryDiscount').textContent = '-\u20B1' + data.discount.toFixed(2);
+    renderSummary();
+  } else {
+    currentDiscount = 0;
+    document.getElementById('discountRow').style.display = 'none';
+    msgEl.innerHTML = '<span style="color:#ef4444;">\u2717 ' + data.message + '</span>';
+    renderSummary();
+  }
+}
+
+async function placeOrder() {
+  var address  = document.getElementById('deliveryAddress').value.trim();
+  var city     = document.getElementById('citySelect').value;
+  var barangay = document.getElementById('barangaySelect').value;
+  if (!address)  { alert('Please enter your street address.'); return; }
+  if (!city)     { alert('Please select your city.'); return; }
+  if (!barangay) { alert('Please select your barangay.'); return; }
+  var items = cart.items || {};
+  var orderItems = Object.values(items).map(function(i){
+    return {id:i.id, name:i.name, price:i.price, quantity:i.quantity};
+  });
+  if (orderItems.length === 0) { alert('Cart is empty.'); return; }
+  var body = {
+    vendor_id:        cart.vendor_id,
+    items:            orderItems,
+    delivery_address: address,
+    city:             city,
+    barangay:         barangay,
+    shipping_fee:     currentShipping,
+    payment_method:   selectedPayment,
+    voucher_code:     document.getElementById('voucherCode').value.trim(),
+    notes:            document.getElementById('orderNotes').value.trim(),
+    pin_lat:          document.getElementById('pinLat').value || '',
+    pin_lng:          document.getElementById('pinLng').value || '',
+  };
+  var res  = await fetch("{{ url_for('customer.place_order') }}", {
+    method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)
+  });
+  var data = await res.json();
+  if (data.success) {
+    localStorage.removeItem(CART_KEY);
+    document.getElementById('successOrderId').textContent = data.order_id;
+    document.getElementById('successModal').classList.remove('hidden');
+  } else {
+    alert('Error: ' + (data.message || 'Could not place order.'));
+  }
+}
+
+// init
+renderSummary();
+</script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</body>
+</html>

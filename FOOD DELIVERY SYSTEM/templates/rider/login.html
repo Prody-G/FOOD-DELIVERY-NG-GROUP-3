@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Rider Login — Unifood</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body>
+<div class="auth-wrap"> <div class="auth-card"> <div class="auth-logo"> <div class="logo-icon"></div> <h1>Rider Portal</h1> <p>Unifood Delivery Partner</p> </div> {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %} <div class="flash flash-{{ 'success' if cat == 'success' else 'error' }}" style="margin-bottom:1rem;">{{ msg }}</div> {% endfor %}
+    {% endwith %} <form method="POST"> <div class="form-group"> <label>Email Address</label> <input type="email" name="email" required placeholder="rider@email.com"> </div> <div class="form-group"> <label>Password</label> <input type="password" name="password" required placeholder="••••••••"> </div> <button type="submit" class="btn btn-primary btn-full btn-lg" style="margin-top:.5rem;"> Sign In </button> </form> <div class="auth-divider">or</div> <div class="auth-links"> New rider? <a href="{{ url_for('rider.apply') }}">Apply Here</a> &nbsp;|&nbsp; <a href="{{ url_for('customer.rider_forgot_password') }}">Forgot Password?</a> </div> </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Admin{% endblock %} — Unifood Admin</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+<style> body { background: #f1f5f9; }
+</style>
+</head>
+<body>
+<div class="admin-layout"> <!-- Sidebar --> <aside class="sidebar"> <div class="sidebar-logo"> <div class="logo-dot"></div> <span>Unifood<br><small style="font-weight:400;font-size:.7rem;opacity:.6">Admin Panel</small></span> </div> <nav class="sidebar-nav"> <div class="nav-section">Management</div> <a href="{{ url_for('admin.riders') }}" class="{% if 'rider' in request.endpoint %}active{% endif %}"> Rider Management </a> <a href="{{ url_for('admin.customers') }}" class="{% if 'customer' in request.endpoint %}active{% endif %}"> Customer Management </a> <a href="{{ url_for('admin.vendors') }}" class="{% if 'vendor' in request.endpoint %}active{% endif %}"> Vendor Management </a> <div class="nav-section">System</div> <a href="{{ url_for('admin.vouchers') }}" class="{% if 'voucher' in request.endpoint %}active{% endif %}"> Voucher Management </a> <a href="{{ url_for('admin.password_resets') }}" class="{% if 'reset' in request.endpoint %}active{% endif %}"> Password Resets
+        {% set pending_count = pending_resets_count if pending_resets_count is defined else 0 %} </a> </nav> <div class="sidebar-footer"> <a href="{{ url_for('admin.logout') }}" class="btn btn-danger btn-sm btn-full"> Logout</a> </div> </aside> <!-- Main Area --> <div class="admin-main"> <header class="admin-topbar"> <div> <strong>{% block page_title %}Dashboard{% endblock %}</strong> </div> <div style="display:flex;align-items:center;gap:.8rem;"> <span style="font-size:.85rem;color:#6b7280;"> {{ session.get('admin_username','Admin') }}</span> </div> </header> <!-- Flash messages --> {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %} <div class="flashes"> {% for cat, msg in messages %} <div class="flash flash-{{ 'success' if cat == 'success' else 'error' if cat == 'error' else 'info' }}"> {{ msg }} </div> {% endfor %} </div> <script>setTimeout(()=>document.querySelectorAll('.flash').forEach(f=>f.remove()),4000)</script> {% endif %}
+    {% endwith %} <main class="admin-content"> {% block content %}{% endblock %} </main> </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Rider Dashboard — UniFood</title>
+<link rel="stylesheet" href="/static/css/main.css">
+<style>
+:root{--blue:#1d4ed8;--green:#15803d;--green-light:#f0fdf4;--green-border:#bbf7d0;--red:#dc2626;--amber:#d97706;--gray-50:#f8fafc;--gray-100:#f1f5f9;--gray-200:#e2e8f0;--gray-400:#94a3b8;--gray-600:#475569;--gray-800:#1e293b;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--gray-50);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--gray-800);font-size:14px;}
+a{color:inherit;text-decoration:none;}
+
+/* Navigation */
+.r-nav{background:#fff;border-bottom:1px solid var(--gray-200);padding:0 1rem;display:flex;align-items:center;height:52px;gap:1rem;position:sticky;top:0;z-index:100;}
+.r-nav-brand{font-weight:800;font-size:1rem;color:var(--blue);letter-spacing:-.3px;}
+.r-nav-links{display:flex;gap:.25rem;margin-left:auto;}
+.r-nav-link{padding:.35rem .75rem;border-radius:6px;font-size:.8rem;font-weight:600;color:var(--gray-600);transition:.15s;}
+.r-nav-link:hover,.r-nav-link.active{background:var(--gray-100);color:var(--gray-800);}
+.r-nav-link.danger{color:var(--red);}
+.r-nav-link.danger:hover{background:#fef2f2;}
+
+/* Main layout */
+.r-wrap{max-width:540px;margin:0 auto;padding:1rem;}
+
+/* Flash */
+.flash-list{list-style:none;margin-bottom:1rem;}
+.flash-item{padding:.6rem .9rem;border-radius:8px;font-size:.82rem;font-weight:600;margin-bottom:.35rem;}
+.flash-item.success{background:#dcfce7;color:#166534;border:1px solid #bbf7d0;}
+.flash-item.error{background:#fee2e2;color:#991b1b;border:1px solid #fecaca;}
+
+/* Status card */
+.status-card{background:#fff;border:1px solid var(--gray-200);border-radius:12px;padding:.9rem 1rem;display:flex;align-items:center;gap:.85rem;margin-bottom:.85rem;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.status-indicator{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.status-indicator.online{background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.2);}
+.status-indicator.offline{background:var(--gray-400);}
+.status-label{font-weight:700;font-size:.88rem;}
+.status-sub{font-size:.72rem;color:var(--gray-400);margin-top:.1rem;}
+.btn-status{border:none;border-radius:8px;padding:.4rem .9rem;font-weight:700;font-size:.78rem;cursor:pointer;transition:.15s;}
+.btn-status.go-offline{background:#fef2f2;color:var(--red);}
+.btn-status.go-offline:hover{background:#fee2e2;}
+.btn-status.go-online{background:var(--green-light);color:var(--green);}
+.btn-status.go-online:hover{background:var(--green-border);}
+
+/* Metrics row */
+.metrics-row{display:grid;grid-template-columns:repeat(3,1fr);gap:.65rem;margin-bottom:.85rem;}
+.metric-card{background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:.8rem .5rem;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+.metric-val{font-size:1.35rem;font-weight:800;line-height:1;}
+.metric-lbl{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--gray-400);margin-top:.25rem;}
+.batch-pill{display:inline-block;font-size:.65rem;font-weight:700;border-radius:20px;padding:.15rem .55rem;margin-top:.25rem;}
+.batch-Gold{background:#fef9c3;color:#854d0e;}
+.batch-Silver{background:#f1f5f9;color:#475569;}
+.batch-Bronze{background:#fff7ed;color:#9a3412;}
+.batch-Standard{background:var(--gray-100);color:var(--gray-600);}
+
+/* Wallet card */
+.wallet-card{background:var(--blue);border-radius:14px;padding:1.1rem 1.2rem;margin-bottom:.85rem;color:#fff;box-shadow:0 4px 14px rgba(29,78,216,.25);}
+.wallet-tabs{display:flex;gap:.5rem;margin-bottom:.8rem;}
+.wallet-tab{background:rgba(255,255,255,.15);border:none;color:rgba(255,255,255,.8);border-radius:6px;padding:.3rem .75rem;font-size:.75rem;font-weight:600;cursor:pointer;transition:.15s;}
+.wallet-tab.active{background:#fff;color:var(--blue);}
+.wallet-amount{font-size:1.9rem;font-weight:800;letter-spacing:-.5px;line-height:1;}
+.wallet-sub{font-size:.75rem;opacity:.75;margin-top:.15rem;}
+.wallet-row{display:flex;justify-content:space-between;align-items:center;margin-top:.9rem;gap:.75rem;}
+.wallet-pending{font-size:.78rem;opacity:.85;}
+.btn-cashout{background:#fff;color:var(--blue);border:none;border-radius:8px;padding:.45rem 1rem;font-weight:800;font-size:.8rem;cursor:pointer;white-space:nowrap;transition:.15s;}
+.btn-cashout:hover{background:var(--gray-100);}
+.btn-cashout:disabled{opacity:.5;cursor:not-allowed;}
+.wallet-fee-note{font-size:.68rem;opacity:.65;margin-top:.35rem;}
+.wallet-stats{display:flex;gap:1.5rem;margin-top:.65rem;padding-top:.65rem;border-top:1px solid rgba(255,255,255,.15);}
+.wallet-stat-lbl{font-size:.67rem;opacity:.7;text-transform:uppercase;letter-spacing:.04em;}
+.wallet-stat-val{font-size:.9rem;font-weight:700;margin-top:.1rem;}
+
+/* Section header */
+.sec-hd{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray-400);margin:.25rem 0 .6rem;padding-left:.1rem;}
+
+/* Cards */
+.r-card{background:#fff;border:1px solid var(--gray-200);border-radius:12px;margin-bottom:.75rem;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.r-card-hd{padding:.8rem 1rem;border-bottom:1px solid var(--gray-100);display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem;}
+.r-card-id{font-size:.68rem;color:var(--gray-400);}
+.r-card-title{font-size:.9rem;font-weight:700;color:var(--gray-800);margin:.1rem 0 .15rem;}
+.r-card-sub{font-size:.75rem;color:var(--gray-600);}
+.r-card-amt{font-size:1rem;font-weight:800;color:var(--blue);white-space:nowrap;}
+.r-card-pay{font-size:.68rem;color:var(--gray-400);text-align:right;}
+.r-card-body{padding:.85rem 1rem;}
+
+/* Phase badge */
+.phase-badge{display:inline-block;font-size:.68rem;font-weight:700;border-radius:4px;padding:.2rem .55rem;margin-bottom:.65rem;text-transform:uppercase;letter-spacing:.05em;}
+.phase-vendor{background:#dbeafe;color:#1e40af;}
+.phase-customer{background:#dcfce7;color:#166534;}
+
+/* Grid */
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem;}
+.info-lbl{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--gray-400);margin-bottom:.2rem;}
+.info-val{font-size:.83rem;font-weight:600;color:var(--gray-800);}
+.info-sub{font-size:.73rem;color:var(--gray-600);}
+
+/* Checklist */
+.checklist{background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:.65rem .85rem;margin-bottom:.75rem;}
+.checklist-title{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--gray-400);margin-bottom:.5rem;}
+.checklist-item{display:flex;align-items:center;gap:.6rem;padding:.25rem 0;font-size:.82rem;}
+.checklist-item+.checklist-item{border-top:1px solid var(--gray-100);}
+.check-box{width:16px;height:16px;border:2px solid var(--gray-200);border-radius:4px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#fff;font-size:.65rem;}
+.check-box.checked{background:var(--blue);border-color:var(--blue);color:#fff;}
+.checklist-name{flex:1;}
+.checklist-qty{font-weight:700;color:var(--blue);margin-right:.35rem;}
+.checklist-price{font-size:.75rem;color:var(--gray-400);}
+
+/* Payment indicator */
+.payment-indicator{border-radius:8px;padding:.65rem .85rem;margin-bottom:.75rem;display:flex;align-items:center;gap:.75rem;}
+.payment-indicator.cod{background:#fff7ed;border:1px solid #fed7aa;}
+.payment-indicator.online{background:var(--green-light);border:1px solid var(--green-border);}
+.pi-label{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--gray-400);}
+.pi-value{font-size:1rem;font-weight:800;}
+.pi-value.cod{color:#92400e;}
+.pi-value.online{color:var(--green);}
+
+/* Proof upload */
+.proof-zone{border:2px dashed var(--gray-200);border-radius:10px;padding:.9rem;text-align:center;cursor:pointer;margin-bottom:.7rem;transition:.15s;}
+.proof-zone:hover{border-color:var(--blue);background:#eff6ff;}
+.proof-zone-title{font-size:.8rem;font-weight:600;color:var(--gray-600);}
+.proof-zone-hint{font-size:.7rem;color:var(--gray-400);margin-top:.2rem;}
+
+/* Chat widget */
+.chat-widget{border:1px solid var(--gray-200);border-radius:10px;overflow:hidden;margin-bottom:.75rem;}
+.chat-hd{background:var(--gray-50);padding:.55rem .85rem;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--gray-400);border-bottom:1px solid var(--gray-200);display:flex;justify-content:space-between;align-items:center;}
+.chat-body{height:180px;overflow-y:auto;padding:.6rem .85rem;background:#fff;display:flex;flex-direction:column;gap:.45rem;}
+.chat-msg{max-width:80%;}
+.chat-msg.rider{align-self:flex-end;}
+.chat-msg.customer{align-self:flex-start;}
+.chat-bubble{border-radius:10px;padding:.4rem .65rem;font-size:.8rem;line-height:1.35;}
+.chat-msg.rider .chat-bubble{background:var(--blue);color:#fff;border-bottom-right-radius:3px;}
+.chat-msg.customer .chat-bubble{background:var(--gray-100);color:var(--gray-800);border-bottom-left-radius:3px;}
+.chat-time{font-size:.65rem;color:var(--gray-400);margin-top:.15rem;}
+.chat-msg.rider .chat-time{text-align:right;}
+.chat-footer{display:flex;border-top:1px solid var(--gray-200);}
+.chat-input{flex:1;border:none;padding:.55rem .85rem;font-size:.82rem;outline:none;background:#fff;}
+.chat-send{background:var(--blue);color:#fff;border:none;padding:.55rem 1rem;font-size:.78rem;font-weight:700;cursor:pointer;}
+.chat-send:hover{background:#1e40af;}
+.chat-empty{text-align:center;padding:2rem;font-size:.78rem;color:var(--gray-400);}
+
+/* Buttons */
+.btn-primary-full{display:block;width:100%;background:var(--blue);color:#fff;border:none;border-radius:9px;padding:.65rem;font-size:.88rem;font-weight:700;cursor:pointer;text-align:center;transition:.15s;}
+.btn-primary-full:hover{background:#1e40af;}
+.btn-success-full{display:block;width:100%;background:#16a34a;color:#fff;border:none;border-radius:9px;padding:.65rem;font-size:.88rem;font-weight:700;cursor:pointer;text-align:center;transition:.15s;}
+.btn-success-full:hover{background:#15803d;}
+.btn-outline-sm{border:1px solid var(--gray-200);background:#fff;border-radius:7px;padding:.35rem .75rem;font-size:.78rem;font-weight:600;cursor:pointer;color:var(--gray-600);transition:.15s;}
+.btn-outline-sm:hover{border-color:var(--blue);color:var(--blue);}
+.btn-accept{background:var(--blue);color:#fff;border:none;border-radius:8px;padding:.4rem .9rem;font-size:.8rem;font-weight:700;cursor:pointer;transition:.15s;}
+.btn-accept:hover{background:#1e40af;}
+
+/* Estimated earning badge */
+.est-earn{background:var(--green-light);border:1px solid var(--green-border);border-radius:6px;padding:.3rem .65rem;font-size:.75rem;font-weight:700;color:var(--green);}
+
+/* Empty state */
+.empty-state{background:#fff;border:1px solid var(--gray-200);border-radius:12px;padding:2rem;text-align:center;}
+.empty-state-title{font-size:.85rem;font-weight:600;color:var(--gray-600);margin-bottom:.25rem;}
+.empty-state-sub{font-size:.75rem;color:var(--gray-400);}
+
+/* Delivery history */
+.history-row{display:flex;justify-content:space-between;align-items:center;padding:.6rem 1rem;border-bottom:1px solid var(--gray-100);}
+.history-row:last-child{border-bottom:none;}
+.history-main{font-size:.82rem;font-weight:600;color:var(--gray-800);}
+.history-sub{font-size:.7rem;color:var(--gray-400);margin-top:.1rem;}
+.history-amt{font-size:.88rem;font-weight:700;color:var(--blue);}
+.history-proof{font-size:.7rem;color:var(--gray-400);text-align:right;margin-top:.1rem;}
+
+/* Shifts mini */
+.shift-mini{display:flex;justify-content:space-between;align-items:center;padding:.5rem .85rem;border-bottom:1px solid var(--gray-100);}
+.shift-mini:last-child{border-bottom:none;}
+.shift-date{font-size:.78rem;font-weight:700;color:var(--gray-800);}
+.shift-slot{font-size:.72rem;color:var(--gray-600);}
+.shift-zone-tag{font-size:.68rem;background:var(--gray-100);color:var(--gray-600);border-radius:4px;padding:.15rem .45rem;font-weight:600;}
+
+/* Cashout history */
+.cashout-row{display:flex;justify-content:space-between;align-items:center;padding:.55rem 1rem;border-bottom:1px solid var(--gray-100);}
+.cashout-row:last-child{border-bottom:none;}
+.cashout-amt{font-size:.85rem;font-weight:700;color:var(--gray-800);}
+.cashout-date{font-size:.7rem;color:var(--gray-400);}
+.cashout-badge{font-size:.68rem;font-weight:700;border-radius:20px;padding:.18rem .55rem;}
+.cashout-badge.pending{background:#fef3c7;color:#92400e;}
+.cashout-badge.completed{background:#dcfce7;color:#166534;}
+.cashout-badge.rejected{background:#fee2e2;color:#991b1b;}
+
+@media(max-width:400px){.wallet-amount{font-size:1.6rem;}.metrics-row{gap:.5rem;}}
+</style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="r-nav">
+  <span class="r-nav-brand">UniFood Rider</span>
+  <div class="r-nav-links">
+    <a href="{{ url_for('rider.dashboard') }}" class="r-nav-link active">Dashboard</a>
+    <a href="{{ url_for('rider.shifts') }}"   class="r-nav-link">Shifts</a>
+    <a href="{{ url_for('rider.profile') }}"  class="r-nav-link">Profile</a>
+    <a href="{{ url_for('rider.logout') }}"   class="r-nav-link danger">Log Out</a>
+  </div>
+</nav>
+
+<div class="r-wrap">
+
+  <!-- Flash -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <ul class="flash-list">
+    {% for cat, msg in messages %}
+    <li class="flash-item {{ cat }}">{{ msg }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% endwith %}
+
+  <!-- Online / Offline -->
+  <div class="status-card">
+    <div class="status-indicator {{ 'online' if rider.is_online else 'offline' }}"></div>
+    <div style="flex:1;">
+      <div class="status-label" style="color:{{ '#15803d' if rider.is_online else '#475569' }};">
+        {{ 'Online' if rider.is_online else 'Offline' }}
+      </div>
+      <div class="status-sub">
+        {{ 'Accepting delivery requests' if rider.is_online else 'Go online to receive deliveries' }}
+      </div>
+    </div>
+    <form method="POST" action="{{ url_for('rider.toggle_online') }}">
+      <button type="submit"
+              class="btn-status {{ 'go-offline' if rider.is_online else 'go-online' }}">
+        {{ 'Go Offline' if rider.is_online else 'Go Online' }}
+      </button>
+    </form>
+  </div>
+
+  <!-- Performance Metrics -->
+  <div class="metrics-row">
+    <div class="metric-card">
+      <div class="metric-val" style="color:{{ '#15803d' if rider.acceptance_rate >= 80 else '#d97706' }};">
+        {{ rider.acceptance_rate }}%
+      </div>
+      <div class="metric-lbl">Acceptance</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-val" style="color:{{ '#15803d' if completion_rate >= 95 else '#d97706' }};">
+        {{ completion_rate }}%
+      </div>
+      <div class="metric-lbl">Completion</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-val" style="color:#1d4ed8;">{{ '%.1f'|format(rider.avg_rating) }}</div>
+      <div class="metric-lbl">Rating</div>
+      <div class="batch-pill batch-{{ rider.batch_level }}">{{ rider.batch_level }}</div>
+    </div>
+  </div>
+
+  <!-- Wallet / Earnings -->
+  <div class="wallet-card">
+    <div class="wallet-tabs">
+      <button class="wallet-tab active" onclick="switchTab('today',this)">Today</button>
+      <button class="wallet-tab" onclick="switchTab('week',this)">This Week</button>
+    </div>
+    <div id="tab-today">
+      <div class="wallet-amount">&#8369;{{ '%.2f'|format(today_earnings) }}</div>
+      <div class="wallet-sub">{{ today_deliveries }} delivery{{ 'ies' if today_deliveries != 1 else '' }} today</div>
+    </div>
+    <div id="tab-week" style="display:none;">
+      <div class="wallet-amount">&#8369;{{ '%.2f'|format(week_earnings) }}</div>
+      <div class="wallet-sub">{{ week_deliveries }} delivery{{ 'ies' if week_deliveries != 1 else '' }} this week</div>
+    </div>
+    <div class="wallet-row">
+      <div>
+        <div class="wallet-pending">Pending cashout: <strong>&#8369;{{ '%.2f'|format(total_pending) }}</strong></div>
+        <div class="wallet-fee-note">20% platform fee already deducted from each delivery</div>
+      </div>
+      <form method="POST" action="{{ url_for('rider.cashout') }}">
+        <button type="submit" class="btn-cashout" {{ 'disabled' if total_pending <= 0 }}>Cash Out</button>
+      </form>
+    </div>
+    <div class="wallet-stats">
+      <div>
+        <div class="wallet-stat-lbl">Total Earned</div>
+        <div class="wallet-stat-val">&#8369;{{ '%.2f'|format(total_earned) }}</div>
+      </div>
+      <div>
+        <div class="wallet-stat-lbl">Deliveries</div>
+        <div class="wallet-stat-val">{{ total_delivered }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cashout History -->
+  {% if recent_cashouts %}
+  <p class="sec-hd">Cashout History</p>
+  <div class="r-card" style="overflow:hidden;">
+    {% for co in recent_cashouts %}
+    <div class="cashout-row">
+      <div>
+        <div class="cashout-amt">&#8369;{{ '%.2f'|format(co.amount) }}</div>
+        <div class="cashout-date">{{ co.requested_at.strftime('%b %d, %Y') }}</div>
+      </div>
+      <span class="cashout-badge {{ co.status }}">{{ co.status|title }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Upcoming Shifts -->
+  {% if upcoming_shifts %}
+  <p class="sec-hd" style="margin-top:.5rem;">Upcoming Shifts
+    <a href="{{ url_for('rider.shifts') }}" style="font-size:.68rem;font-weight:600;color:#1d4ed8;margin-left:.5rem;">View all</a>
+  </p>
+  <div class="r-card" style="overflow:hidden;">
+    {% for s in upcoming_shifts %}
+    <div class="shift-mini">
+      <div>
+        <div class="shift-date">{{ s.shift_date.strftime('%a, %b %d') }}</div>
+        <div class="shift-slot">{{ s.time_slot }}</div>
+      </div>
+      <span class="shift-zone-tag">{{ s.zone }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="sec-hd" style="margin-top:.5rem;">Upcoming Shifts</p>
+  <div style="background:#fff;border:1px solid var(--gray-200);border-radius:12px;padding:.85rem 1rem;display:flex;justify-content:space-between;align-items:center;">
+    <span style="font-size:.82rem;color:var(--gray-400);">No shifts booked yet.</span>
+    <a href="{{ url_for('rider.shifts') }}" class="btn-outline-sm">Book a Shift</a>
+  </div>
+  {% endif %}
+
+  <!-- Active Deliveries -->
+  {% if active_orders %}
+  <p class="sec-hd" style="margin-top:.75rem;">Active Deliveries</p>
+  {% for order in active_orders %}
+  <div class="r-card">
+    <div class="r-card-hd">
+      <div>
+        <div class="r-card-id">Order #{{ order.id }} &middot; {{ order.created_at.strftime('%H:%M') }}</div>
+        <div class="r-card-title">
+          {% if order.delivery_phase == 'going_to_vendor' %}Going to Restaurant{% else %}Delivering to Customer{% endif %}
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div class="r-card-amt">&#8369;{{ '%.2f'|format(order.total) }}</div>
+        <div class="r-card-pay">{{ order.payment_method|upper }}</div>
+      </div>
+    </div>
+    <div class="r-card-body">
+
+      {% if order.delivery_phase == 'going_to_vendor' %}
+      <!-- Phase A: Going to Vendor -->
+      <span class="phase-badge phase-vendor">Phase A &mdash; Going to Restaurant</span>
+
+      <div class="info-grid">
+        <div>
+          <div class="info-lbl">Restaurant</div>
+          <div class="info-val">{{ order.vendor.shop_name }}</div>
+          <div class="info-sub">{{ order.vendor.address or 'Address on file' }}</div>
+        </div>
+        <div>
+          <div class="info-lbl">Phone</div>
+          <div class="info-val">{{ order.vendor.phone or 'N/A' }}</div>
+        </div>
+      </div>
+
+      <!-- Order Checklist -->
+      <div class="checklist">
+        <div class="checklist-title">Order Checklist &mdash; verify before pickup</div>
+        {% for item in order.items %}
+        <div class="checklist-item" onclick="toggleCheck(this)">
+          <div class="check-box" id="chk{{ order.id }}_{{ loop.index0 }}"></div>
+          <div class="checklist-name">
+            <span class="checklist-qty">{{ item.quantity }}x</span>{{ item.name }}
+          </div>
+          <div class="checklist-price">&#8369;{{ '%.2f'|format(item.price * item.quantity) }}</div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <form method="POST" action="{{ url_for('rider.mark_picked_up', order_id=order.id) }}">
+        <button type="submit" class="btn-primary-full">Mark as Picked Up &rarr;</button>
+      </form>
+      <form method="POST" action="{{ url_for('rider.cancel_delivery', order_id=order.id) }}"
+            onsubmit="return confirm('Cancel this delivery? The order will be returned to the available pool.');"
+            style="margin-top:.5rem;">
+        <button type="submit" style="display:block;width:100%;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;border-radius:9px;padding:.55rem;font-size:.82rem;font-weight:700;cursor:pointer;">Cancel Booking</button>
+      </form>
+
+      {% else %}
+      <!-- Phase B: Going to Customer -->
+      <span class="phase-badge phase-customer">Phase B &mdash; Delivering to Customer</span>
+
+      <div class="info-grid">
+        <div>
+          <div class="info-lbl">Customer</div>
+          <div class="info-val">{{ order.customer.name.split(' ')[0] }}</div>
+          <div class="info-sub">{{ order.customer.phone or '' }}</div>
+        </div>
+        <div>
+          <div class="info-lbl">Delivery Address</div>
+          <div class="info-val" style="font-size:.78rem;">
+            {{ order.delivery_address }}{% if order.barangay %}, {{ order.barangay }}{% endif %}, {{ order.city }}
+          </div>
+        </div>
+      </div>
+
+      {% if order.notes %}
+      <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:7px;padding:.5rem .75rem;margin-bottom:.7rem;font-size:.78rem;">
+        <span style="font-weight:700;font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;color:var(--gray-400);">Customer Notes</span><br>
+        {{ order.notes }}
+      </div>
+      {% endif %}
+
+      <!-- Payment Indicator -->
+      {% if order.payment_method == 'cod' %}
+      <div class="payment-indicator cod">
+        <div>
+          <div class="pi-label">Payment Method</div>
+          <div class="pi-value cod">Cash on Delivery</div>
+        </div>
+        <div style="margin-left:auto;text-align:right;">
+          <div class="pi-label">Collect</div>
+          <div class="pi-value cod">&#8369;{{ '%.2f'|format(order.total) }}</div>
+        </div>
+      </div>
+      {% else %}
+      <div class="payment-indicator online">
+        <div>
+          <div class="pi-label">Payment Method</div>
+          <div class="pi-value online">GCash &mdash; Paid Online</div>
+        </div>
+        <div style="margin-left:auto;">
+          <div style="font-size:.72rem;font-weight:700;color:#15803d;background:#bbf7d0;border-radius:4px;padding:.2rem .5rem;">CONFIRMED</div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Chat Widget -->
+      <div class="chat-widget" id="chatWidget{{ order.id }}">
+        <div class="chat-hd">
+          <span>Chat with {{ order.customer.name.split(' ')[0] }}</span>
+          <span id="unread{{ order.id }}" style="display:none;background:#ef4444;color:#fff;font-size:.6rem;border-radius:20px;padding:.1rem .45rem;">New</span>
+        </div>
+        <div class="chat-body" id="chatBody{{ order.id }}">
+          <div class="chat-empty">Loading messages...</div>
+        </div>
+        <div class="chat-footer">
+          <input class="chat-input" id="chatInput{{ order.id }}"
+                 placeholder="Type a message..." maxlength="500"
+                 onkeydown="if(event.key==='Enter')sendMsg({{ order.id }})">
+          <button class="chat-send" onclick="sendMsg({{ order.id }})">Send</button>
+        </div>
+      </div>
+
+      <!-- Proof of Delivery -->
+      <form method="POST" action="{{ url_for('rider.mark_delivered', order_id=order.id) }}"
+            enctype="multipart/form-data">
+        <div class="proof-zone" onclick="document.getElementById('proofInput{{ order.id }}').click()">
+          <div id="proofPreview{{ order.id }}" style="display:none;">
+            <img id="proofImg{{ order.id }}" style="max-height:100px;border-radius:6px;">
+          </div>
+          <div id="proofPlaceholder{{ order.id }}">
+            <div class="proof-zone-title">Upload Proof of Delivery</div>
+            <div class="proof-zone-hint">Click to select a photo</div>
+          </div>
+        </div>
+        <input type="file" name="proof_photo" id="proofInput{{ order.id }}" accept="image/*" hidden
+               onchange="previewProof('{{ order.id }}', this)">
+        <button type="submit" class="btn-success-full">Confirm Delivered</button>
+      </form>
+      {% endif %}
+
+    </div>
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  <!-- Available Deliveries -->
+  {% if rider.is_online %}
+  <p class="sec-hd" style="margin-top:.5rem;">Available Deliveries</p>
+  {% if available_orders %}
+  {% for order in available_orders %}
+  {% set est_earn = (order.shipping_fee if order.shipping_fee and order.shipping_fee > 0 else 30) %}
+  <div class="r-card">
+    <div class="r-card-hd">
+      <div>
+        <div class="r-card-id">Order #{{ order.id }} &middot; {{ order.created_at.strftime('%H:%M') }} &middot; {{ order.items|length }} item{{ 's' if order.items|length != 1 }}</div>
+        <div class="r-card-title">{{ order.vendor.shop_name }}</div>
+        <div class="r-card-sub">{{ order.vendor.address or 'Address on file' }}</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="r-card-amt">&#8369;{{ '%.2f'|format(order.total) }}</div>
+        <div class="r-card-pay">{{ order.payment_method|upper }}</div>
+      </div>
+    </div>
+    <div style="padding:.65rem 1rem;border-top:1px solid var(--gray-100);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem;">
+      <div>
+        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--gray-400);margin-bottom:.2rem;">Delivery Area</div>
+        <div style="font-size:.8rem;color:var(--gray-600);">{{ order.barangay or '' }}{{ ', ' if order.barangay }}{{ order.city }}</div>
+        <div style="margin-top:.3rem;"><span class="est-earn">Est. Earn: &#8369;{{ '%.2f'|format(est_earn) }}</span></div>
+      </div>
+      <form method="POST" action="{{ url_for('rider.accept_order', order_id=order.id) }}">
+        <button type="submit" class="btn-accept">Accept</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-state-title">No deliveries available</div>
+    <div class="empty-state-sub">New orders will appear here automatically.</div>
+  </div>
+  {% endif %}
+  {% else %}
+  <div class="empty-state" style="margin-top:.5rem;">
+    <div class="empty-state-title">You are offline</div>
+    <div class="empty-state-sub">Switch to Online to start receiving delivery requests.</div>
+  </div>
+  {% endif %}
+
+  <!-- Recent Deliveries -->
+  {% if completed_orders %}
+  <p class="sec-hd" style="margin-top:.75rem;">Recent Deliveries</p>
+  <div class="r-card" style="overflow:hidden;">
+    {% for order in completed_orders %}
+    <div class="history-row">
+      <div>
+        <div class="history-main">#{{ order.id }} &mdash; {{ order.vendor.shop_name }}</div>
+        <div class="history-sub">{{ order.customer.name }} &middot; {{ order.created_at.strftime('%b %d, %Y') }}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div class="history-amt">&#8369;{{ '%.2f'|format(order.total) }}</div>
+        {% if order.proof_of_delivery %}
+        <a href="{{ url_for('static', filename=order.proof_of_delivery) }}" target="_blank"
+           class="history-proof">View proof</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+</div><!-- /.r-wrap -->
+
+<script>
+//  Wallet tabs 
+function switchTab(tab, btn) {
+  document.getElementById('tab-today').style.display = tab === 'today' ? '' : 'none';
+  document.getElementById('tab-week').style.display  = tab === 'week'  ? '' : 'none';
+  document.querySelectorAll('.wallet-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+//  Checklist 
+function toggleCheck(row) {
+  const box = row.querySelector('.check-box');
+  box.classList.toggle('checked');
+  box.textContent = box.classList.contains('checked') ? '&#10003;' : '';
+}
+
+//  Proof preview 
+function previewProof(orderId, input) {
+  if (!input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('proofImg' + orderId).src = e.target.result;
+    document.getElementById('proofPreview' + orderId).style.display = '';
+    document.getElementById('proofPlaceholder' + orderId).style.display = 'none';
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+//  Chat 
+const chatOrders = [{% for o in active_orders %}{% if o.delivery_phase == 'going_to_customer' %}{{ o.id }}{% if not loop.last %},{% endif %}{% endif %}{% endfor %}];
+const chatSeen = {};
+
+function loadChat(orderId) {
+  fetch('/rider/chat/' + orderId + '/messages')
+    .then(r => r.json()).then(msgs => {
+      const body = document.getElementById('chatBody' + orderId);
+      if (!body) return;
+      body.innerHTML = msgs.length === 0
+        ? '<div class="chat-empty">No messages yet. Say hello!</div>'
+        : msgs.map(m =>
+          `<div class="chat-msg ${m.sender}">
+            <div class="chat-bubble">${escHtml(m.message)}</div>
+            <div class="chat-time">${m.time}</div>
+          </div>`).join('');
+      body.scrollTop = body.scrollHeight;
+    }).catch(() => {});
+}
+
+function sendMsg(orderId) {
+  const input = document.getElementById('chatInput' + orderId);
+  const msg = input.value.trim();
+  if (!msg) return;
+  fetch('/rider/chat/' + orderId + '/send', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({message: msg})
+  }).then(() => { input.value = ''; loadChat(orderId); });
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Poll chats every 5 seconds
+chatOrders.forEach(oid => {
+  loadChat(oid);
+  setInterval(() => loadChat(oid), 5000);
+});
+</script>
+</body>
+</html>

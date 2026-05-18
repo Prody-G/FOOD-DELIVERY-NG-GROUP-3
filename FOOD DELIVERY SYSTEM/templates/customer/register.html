@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Create Account — Unifood</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="auth-card" style="max-width:480px;">
+    <div class="auth-logo">
+      <h1>Create Account</h1>
+      <p>Join Unifood and order your favorite food</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+        <div class="flash flash-{{ 'success' if cat == 'success' else 'error' }}" style="margin-bottom:1rem;">{{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <form method="POST">
+      <div class="form-group">
+        <label>Full Name *</label>
+        <input type="text" name="name" required placeholder="Juan Dela Cruz">
+      </div>
+      <div class="form-group">
+        <label>Email Address *</label>
+        <input type="email" name="email" required placeholder="your@email.com">
+      </div>
+      <div class="form-group">
+        <label>Phone Number</label>
+        <input type="text" name="phone" placeholder="09XXXXXXXXX">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Password * <span style="font-size:.72rem;color:#9ca3af;">(8–16 chars)</span></label>
+          <input type="password" name="password" id="custPw" required placeholder="Min 8, max 16 chars" oninput="checkCustPw()">
+          <div style="height:5px;border-radius:3px;margin-top:.4rem;transition:all .3s;background:#e5e7eb;" id="custPwBar"></div>
+          <div style="font-size:.75rem;margin-top:.3rem;font-weight:600;" id="custPwFb"></div>
+        </div>
+        <div class="form-group">
+          <label>Confirm Password *</label>
+          <input type="password" name="confirm_password" id="custPwc" required oninput="checkCustMatch()">
+          <div style="font-size:.75rem;margin-top:.3rem;font-weight:600;" id="custPwcFb"></div>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full btn-lg">Create Account</button>
+    </form>
+
+    <div class="auth-divider">or</div>
+    <div class="auth-links">
+      Already have an account? <a href="{{ url_for('customer.login') }}">Sign In</a>
+    </div>
+  </div>
+</div>
+<script>
+function checkCustPw() {
+  const pw = document.getElementById('custPw').value;
+  const bar = document.getElementById('custPwBar');
+  const fb  = document.getElementById('custPwFb');
+  const len = pw.length;
+  let score = 0;
+  if (len >= 8) score++;
+  if (len <= 16 && len >= 8) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  const colors = ['#ef4444','#f97316','#eab308','#22c55e','#16a34a'];
+  const labels = ['Too short','Weak','Fair','Strong','Very strong'];
+  bar.style.width  = len === 0 ? '0' : Math.min(100,(score/5)*100) + '%';
+  bar.style.background = len === 0 ? '#e5e7eb' : colors[Math.min(score-1,4)];
+  if (len === 0) { fb.textContent = ''; return; }
+  if (len < 8)  { fb.textContent = 'Too short (min 8)'; fb.style.color = '#ef4444'; return; }
+  if (len > 16) { fb.textContent = 'Too long (max 16)'; fb.style.color = '#ef4444'; return; }
+  fb.textContent = labels[Math.min(score-1,4)]; fb.style.color = colors[Math.min(score-1,4)];
+  checkCustMatch();
+}
+function checkCustMatch() {
+  const pw = document.getElementById('custPw').value;
+  const pwc = document.getElementById('custPwc').value;
+  const fb  = document.getElementById('custPwcFb');
+  if (!pwc) { fb.textContent = ''; return; }
+  if (pw === pwc) { fb.textContent = ' Passwords match'; fb.style.color = '#22c55e'; }
+  else { fb.textContent = ' Does not match'; fb.style.color = '#ef4444'; }
+}
+</script>
+</body>
+</html>
+

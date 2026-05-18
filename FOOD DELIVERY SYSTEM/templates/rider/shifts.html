@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>My Shifts â€” UniFood Rider</title>
+<style>
+:root{--blue:#1d4ed8;--blue-lt:#dbeafe;--green:#15803d;--green-lt:#f0fdf4;--green-bd:#bbf7d0;--red:#dc2626;--red-lt:#fee2e2;--amber:#d97706;--amber-lt:#fffbeb;--gray-50:#f8fafc;--gray-100:#f1f5f9;--gray-200:#e2e8f0;--gray-300:#cbd5e1;--gray-400:#94a3b8;--gray-500:#64748b;--gray-600:#475569;--gray-700:#334155;--gray-800:#1e293b;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--gray-50);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--gray-800);font-size:14px;}
+a{text-decoration:none;color:inherit;}
+.r-nav{background:#fff;border-bottom:1px solid var(--gray-200);padding:0 1rem;display:flex;align-items:center;height:52px;gap:1rem;position:sticky;top:0;z-index:100;}
+.r-nav-brand{font-weight:800;font-size:1rem;color:var(--blue);}
+.r-nav-links{display:flex;gap:.25rem;margin-left:auto;}
+.r-nav-link{padding:.35rem .75rem;border-radius:6px;font-size:.8rem;font-weight:600;color:var(--gray-600);}
+.r-nav-link:hover,.r-nav-link.active{background:var(--gray-100);color:var(--gray-800);}
+.r-nav-link.danger{color:var(--red);}
+.r-nav-link.danger:hover{background:var(--red-lt);}
+.wrap{max-width:640px;margin:0 auto;padding:1rem;}
+.flash-list{list-style:none;margin-bottom:1rem;}
+.flash-item{padding:.6rem .9rem;border-radius:8px;font-size:.82rem;font-weight:600;margin-bottom:.35rem;}
+.flash-item.success{background:var(--green-lt);color:#166534;border:1px solid var(--green-bd);}
+.flash-item.error{background:var(--red-lt);color:#991b1b;border:1px solid #fecaca;}
+.sec-hd{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--gray-400);margin:.25rem 0 .5rem;}
+.r-card{background:#fff;border:1px solid var(--gray-200);border-radius:12px;margin-bottom:.75rem;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.batch-banner{border-radius:12px;padding:.75rem 1rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;border:1px solid var(--gray-200);background:var(--gray-100);}
+.batch-banner.Gold{background:#fef9c3;border-color:#fde68a;}
+.batch-banner.Silver{background:var(--gray-100);border-color:var(--gray-300);}
+.batch-banner.Bronze{background:#fff7ed;border-color:#fed7aa;}
+.bb-label{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--gray-400);}
+.bb-val{font-size:.95rem;font-weight:800;margin-top:.1rem;}
+.batch-banner.Gold .bb-val{color:#854d0e;}
+.batch-banner.Silver .bb-val{color:var(--gray-600);}
+.batch-banner.Bronze .bb-val{color:#9a3412;}
+.week-bar{display:flex;align-items:center;justify-content:space-between;background:var(--blue-lt);border:1px solid #bfdbfe;border-radius:10px;padding:.6rem .9rem;margin-bottom:.75rem;font-size:.82rem;}
+.week-bar strong{color:var(--blue);}
+.shift-row{display:flex;align-items:center;gap:.65rem;padding:.7rem .9rem;border-bottom:1px solid var(--gray-100);}
+.shift-row:last-child{border-bottom:none;}
+.shift-date-badge{background:var(--blue);color:#fff;border-radius:8px;min-width:46px;padding:.35rem .45rem;text-align:center;flex-shrink:0;}
+.sdb-mo{font-size:.58rem;font-weight:700;text-transform:uppercase;opacity:.8;}
+.sdb-day{font-size:1.15rem;font-weight:800;line-height:1;}
+.shift-info{flex:1;min-width:0;}
+.shift-slot-text{font-size:.82rem;font-weight:700;color:var(--gray-800);}
+.shift-zone-text{font-size:.72rem;color:var(--gray-500);margin-top:.1rem;}
+.shift-open-tag{display:inline-block;background:var(--amber-lt);color:var(--amber);border:1px solid #fde68a;border-radius:4px;font-size:.6rem;font-weight:700;padding:.06rem .3rem;text-transform:uppercase;letter-spacing:.04em;margin-left:.3rem;vertical-align:middle;}
+.shift-status{font-size:.65rem;font-weight:700;border-radius:20px;padding:.2rem .55rem;white-space:nowrap;flex-shrink:0;}
+.shift-status.booked{background:var(--blue-lt);color:#1e40af;}
+.shift-status.completed{background:var(--green-lt);color:#166534;}
+.shift-status.cancelled{background:var(--gray-100);color:var(--gray-400);}
+.btn-cancel-shift{border:1px solid #fecaca;background:var(--red-lt);color:var(--red);border-radius:6px;padding:.25rem .6rem;font-size:.7rem;font-weight:700;cursor:pointer;flex-shrink:0;}
+.btn-cancel-shift:hover{background:#fecaca;}
+.empty-state{padding:2rem;text-align:center;font-size:.82rem;color:var(--gray-400);}
+.book-form{background:#fff;border:1px solid var(--gray-200);border-radius:14px;padding:1.2rem;margin-bottom:.75rem;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.book-form-title{font-size:.9rem;font-weight:700;margin-bottom:1rem;color:var(--gray-800);}
+.form-group{margin-bottom:.85rem;}
+.form-label{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--gray-400);display:block;margin-bottom:.3rem;}
+.form-control{width:100%;border:1.5px solid var(--gray-200);border-radius:8px;padding:.55rem .75rem;font-size:.88rem;color:var(--gray-800);background:#fff;outline:none;transition:.15s;}
+.form-control:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(29,78,216,.08);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:.65rem;}
+.type-toggle{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.85rem;}
+.type-btn{border:2px solid var(--gray-200);border-radius:9px;padding:.55rem .5rem;text-align:center;cursor:pointer;transition:.15s;background:#fff;user-select:none;}
+.type-btn input[type=radio]{display:none;}
+.type-btn.selected{border-color:var(--blue);background:var(--blue-lt);}
+.type-btn-title{font-size:.82rem;font-weight:700;color:var(--gray-700);display:block;}
+.type-btn.selected .type-btn-title{color:var(--blue);}
+.type-btn-desc{font-size:.68rem;color:var(--gray-400);margin-top:.15rem;line-height:1.3;}
+.duration-pill{display:inline-block;background:var(--green-lt);border:1px solid var(--green-bd);border-radius:20px;padding:.18rem .6rem;font-size:.72rem;font-weight:700;color:var(--green);}
+.duration-pill.warn{background:var(--red-lt);border-color:#fecaca;color:var(--red);}
+/* Calendar strip */
+.cal-strip{display:flex;gap:.35rem;overflow-x:auto;padding:.35rem 0 .5rem;margin-bottom:.4rem;scrollbar-width:none;}
+.cal-strip::-webkit-scrollbar{display:none;}
+.cal-day{min-width:52px;border:2px solid var(--gray-200);border-radius:10px;padding:.45rem .25rem;text-align:center;cursor:pointer;transition:.15s;background:#fff;flex-shrink:0;position:relative;}
+.cal-day:hover{border-color:var(--blue);background:var(--blue-lt);}
+.cal-day.selected{border-color:var(--blue);background:var(--blue);color:#fff;}
+.cal-day.has-shift::after{content:'';position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:var(--green);}
+.cal-day.selected.has-shift::after{background:rgba(255,255,255,.7);}
+.cal-day-dow{font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;opacity:.7;}
+.cal-day-num{font-size:1.05rem;font-weight:800;line-height:1.2;}
+.cal-day-mo{font-size:.56rem;opacity:.65;}
+.rules-box{background:var(--amber-lt);border:1px solid #fde68a;border-radius:10px;padding:.7rem .85rem;font-size:.76rem;color:#92400e;margin-bottom:.85rem;line-height:1.55;}
+.rules-box ul{padding-left:1.1rem;margin-top:.25rem;}
+.btn-submit{display:block;width:100%;background:var(--blue);color:#fff;border:none;border-radius:10px;padding:.7rem;font-size:.9rem;font-weight:700;cursor:pointer;transition:.15s;}
+.btn-submit:hover{background:#1e40af;}
+.start-now-card{background:linear-gradient(135deg,#16a34a 0%,#15803d 100%);border-radius:14px;padding:1.2rem;margin-bottom:.75rem;color:#fff;box-shadow:0 2px 8px rgba(21,128,61,.25);}
+.start-now-title{font-size:1rem;font-weight:800;margin-bottom:.25rem;}
+.start-now-sub{font-size:.75rem;opacity:.85;margin-bottom:1rem;}
+.start-now-row{display:grid;grid-template-columns:1fr 1fr;gap:.65rem;margin-bottom:.85rem;}
+.start-now-label{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;opacity:.8;display:block;margin-bottom:.3rem;}
+.start-now-control{width:100%;border:1.5px solid rgba(255,255,255,.3);border-radius:8px;padding:.52rem .75rem;font-size:.88rem;color:#fff;background:rgba(255,255,255,.15);outline:none;}
+.start-now-control:focus{border-color:#fff;background:rgba(255,255,255,.2);}
+.start-now-control option{color:#111;background:#fff;}
+.btn-start-now{display:block;width:100%;background:#fff;color:#15803d;border:none;border-radius:10px;padding:.7rem;font-size:.9rem;font-weight:800;cursor:pointer;transition:.15s;}
+.btn-start-now:hover{background:#f0fdf4;}
+.duration-chips{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.85rem;}
+.dur-chip{flex:1;min-width:60px;text-align:center;border:1.5px solid rgba(255,255,255,.35);border-radius:8px;padding:.42rem .4rem;font-size:.8rem;font-weight:700;cursor:pointer;background:rgba(255,255,255,.1);color:#fff;transition:.12s;}
+.dur-chip:hover,.dur-chip.sel{background:#fff;color:#15803d;border-color:#fff;}
+</style>
+</head>
+<body>
+<nav class="r-nav">
+  <span class="r-nav-brand">UniFood Rider</span>
+  <div class="r-nav-links">
+    <a href="{{ url_for('rider.dashboard') }}" class="r-nav-link">Dashboard</a>
+    <a href="{{ url_for('rider.shifts') }}"    class="r-nav-link active">Shifts</a>
+    <a href="{{ url_for('rider.profile') }}"   class="r-nav-link">Profile</a>
+    <a href="{{ url_for('rider.logout') }}"    class="r-nav-link danger">Log Out</a>
+  </div>
+</nav>
+
+<div class="wrap">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <ul class="flash-list">
+    {% for cat, msg in messages %}
+    <li class="flash-item {{ cat }}">{{ msg }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% endwith %}
+
+  <!-- Batch banner -->
+  <div class="batch-banner {{ rider.batch_level }}">
+    <div>
+      <div class="bb-label">Batch Level</div>
+      <div class="bb-val">{{ rider.batch_level }}</div>
+    </div>
+    <div style="font-size:.75rem;text-align:right;color:var(--gray-500);">
+      Avg rating: {{ '%.1f'|format(rider.avg_rating) }}
+    </div>
+  </div>
+
+  <!-- Weekly counter -->
+  <div class="week-bar">
+    <span>Shifts booked this week</span>
+    <strong>{{ this_week_count }} / 10</strong>
+  </div>
+
+  <!-- Upcoming Shifts -->
+  <p class="sec-hd">Upcoming &amp; Recent Shifts</p>
+  <div class="r-card">
+    {% if upcoming_shifts %}
+      {% for s in upcoming_shifts %}
+      <div class="shift-row">
+        <div class="shift-date-badge">
+          <div class="sdb-mo">{{ s.shift_date.strftime('%b') }}</div>
+          <div class="sdb-day">{{ s.shift_date.strftime('%d') }}</div>
+        </div>
+        <div class="shift-info">
+          <div class="shift-slot-text">
+            {{ s.time_slot }}
+            {% if s.is_open_shift %}<span class="shift-open-tag">Open</span>{% endif %}
+          </div>
+          <div class="shift-zone-text">{{ shift_zones.get(s.zone, {}).get('name', s.zone) }}</div>
+        </div>
+        <span class="shift-status {{ s.status }}">{{ s.status|title }}</span>
+        {% if s.status == 'booked' %}
+        <form method="POST" action="{{ url_for('rider.cancel_shift', shift_id=s.id) }}">
+          <button type="submit" class="btn-cancel-shift"
+                  onclick="return confirm('Cancel this shift?')">Cancel</button>
+        </form>
+        {% endif %}
+      </div>
+      {% endfor %}
+    {% else %}
+    <div class="empty-state">No shifts yet. Book one below.</div>
+    {% endif %}
+  </div>
+
+  <!-- Start Shift Now -->
+  <p class="sec-hd">Quick Start</p>
+  <div class="start-now-card">
+    <div class="start-now-title">Start Shift Now</div>
+    <div class="start-now-sub">Your shift begins immediately. Pick your zone and when you plan to finish.</div>
+    <form method="POST" action="{{ url_for('rider.shifts') }}" onsubmit="return validateStartNow()">
+      <input type="hidden" name="start_now" value="1">
+      <div class="start-now-row">
+        <div>
+          <label class="start-now-label">Delivery Zone</label>
+          <select name="zone" id="snZone" class="start-now-control" required>
+            <option value="">-- Select Zone --</option>
+            {% for key, z in shift_zones.items() %}
+            <option value="{{ key }}">{{ z.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="start-now-label">End Time</label>
+          <input type="time" name="end_time" id="snEndTime" class="start-now-control"
+                 min="05:00" max="23:59" onchange="clearChips()" required>
+        </div>
+      </div>
+      <div class="start-now-label" style="margin-bottom:.4rem;">Quick Duration</div>
+      <div class="duration-chips">
+        <div class="dur-chip" onclick="setDuration(2)">2 hrs</div>
+        <div class="dur-chip" onclick="setDuration(3)">3 hrs</div>
+        <div class="dur-chip" onclick="setDuration(4)">4 hrs</div>
+        <div class="dur-chip" onclick="setDuration(6)">6 hrs</div>
+        <div class="dur-chip" onclick="setDuration(8)">8 hrs</div>
+      </div>
+      <div id="snDurLabel" style="font-size:.75rem;opacity:.8;margin-bottom:.75rem;min-height:1em;"></div>
+      <button type="submit" class="btn-start-now">Start Shift Now</button>
+    </form>
+  </div>
+
+  <!-- Booking Form -->
+  <div class="book-form">
+    <div class="book-form-title">Book a New Shift</div>
+
+    <div class="rules-box">
+      <strong>Booking Rules</strong>
+      <ul>
+        <li>Set your own start &amp; end time (2 to 8 hours per shift)</li>
+        <li>Must book at least <strong>8 hours before</strong> the shift start (when booking for today)</li>
+        <li>Max <strong>10 shifts per week</strong>; minimum 4 per week recommended</li>
+        <li>A <strong>4-hour gap</strong> is required between shifts on the same day</li>
+        <li>Booked shifts restrict available orders to your selected zone</li>
+      </ul>
+    </div>
+
+    <form method="POST" action="{{ url_for('rider.shifts') }}" onsubmit="return validateForm()">
+
+      <!-- Date: scrollable calendar strip -->
+      <div class="form-group">
+        <div class="form-label">Select Date <span id="selectedDateLabel" style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--blue);font-size:.75rem;"></span></div>
+        <div class="cal-strip" id="calStrip"></div>
+        <input type="hidden" name="shift_date" id="shift_date">
+        <div style="font-size:.72rem;color:var(--gray-400);">
+          Green dot = shift already booked that day
+        </div>
+      </div>
+
+      <!-- Time -->
+      <div id="timeSection">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="start_time">Start Time</label>
+            <input type="time" name="start_time" id="start_time" class="form-control"
+                   min="05:00" max="22:00" onchange="updateDuration()">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="end_time">End Time</label>
+            <input type="time" name="end_time" id="end_time" class="form-control"
+                   min="05:00" max="23:00" onchange="updateDuration()">
+          </div>
+        </div>
+        <div id="durationDisplay" style="margin-bottom:.85rem;"></div>
+      </div>
+
+      <!-- Zone -->
+      <div class="form-group">
+        <label class="form-label" for="zone">Delivery Zone</label>
+        <select name="zone" id="zone" class="form-control" required onchange="showZoneBarangays()">
+          <option value="">-- Select Zone --</option>
+          {% for key, z in shift_zones.items() %}
+          <option value="{{ key }}">{{ z.name }}</option>
+          {% endfor %}
+        </select>
+        <div id="zoneBarangays" style="font-size:.7rem;color:var(--gray-500);margin-top:.4rem;line-height:1.55;"></div>
+      </div>
+
+      <button type="submit" class="btn-submit">Confirm Booking</button>
+    </form>
+  </div>
+
+</div>
+<script>
+var TODAY_STR    = "{{ today }}";
+var MAX_DATE     = "{{ max_date }}";
+var BOOKED_DATES = {{ booked_dates | tojson }};
+var ZONES = {
+  {% for key, z in shift_zones.items() %}
+  "{{ key }}": { name: "{{ z.name }}", barangays: {{ z.barangays | tojson }} },
+  {% endfor %}
+};
+var selectedDate = '';
+
+/* â”€â”€ Calendar strip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+(function buildCalendar() {
+  var strip  = document.getElementById('calStrip');
+  var today  = new Date(TODAY_STR + 'T00:00:00');
+  var maxD   = new Date(MAX_DATE  + 'T00:00:00');
+  var dows   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  for (var d = new Date(today); d <= maxD; d.setDate(d.getDate() + 1)) {
+    var ds = d.toISOString().slice(0, 10);
+    var el = document.createElement('div');
+    el.className = 'cal-day';
+    el.dataset.date = ds;
+    if (BOOKED_DATES.indexOf(ds) !== -1) el.classList.add('has-shift');
+    el.innerHTML = '<div class="cal-day-dow">' + dows[d.getDay()] + '</div>'
+                 + '<div class="cal-day-num">' + d.getDate() + '</div>'
+                 + '<div class="cal-day-mo">' + months[d.getMonth()] + '</div>';
+    (function(ds2, el2){ el2.addEventListener('click', function(){ selectDate(ds2); }); })(ds, el);
+    strip.appendChild(el);
+  }
+})();
+
+function selectDate(ds) {
+  selectedDate = ds;
+  document.getElementById('shift_date').value = ds;
+  document.querySelectorAll('.cal-day').forEach(function(el) {
+    el.classList.toggle('selected', el.dataset.date === ds);
+  });
+  var d = new Date(ds + 'T00:00:00');
+  var days  = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('selectedDateLabel').textContent =
+    'â€” ' + days[d.getDay()] + ', ' + months[d.getMonth()] + ' ' + d.getDate();
+}
+
+/* â”€â”€ Duration display â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+function updateDuration() {
+  var s  = document.getElementById('start_time').value;
+  var e  = document.getElementById('end_time').value;
+  var el = document.getElementById('durationDisplay');
+  if (!s || !e) { el.innerHTML = ''; return; }
+  var sm = parseInt(s.split(':')[0]) * 60 + parseInt(s.split(':')[1]);
+  var em = parseInt(e.split(':')[0]) * 60 + parseInt(e.split(':')[1]);
+  var dur = (em - sm) / 60;
+  if (dur <= 0) {
+    el.innerHTML = '<span class="duration-pill warn">End must be after start</span>'; return;
+  }
+  var ok = dur >= 2 && dur <= 8;
+  el.innerHTML = '<span class="duration-pill' + (ok ? '' : ' warn') + '">'
+               + dur.toFixed(1) + ' hrs' + (!ok ? ' â€” must be 2â€“8 hours' : ' âœ“') + '</span>';
+}
+
+/* â”€â”€ Zone barangay list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+function showZoneBarangays() {
+  var key = document.getElementById('zone').value;
+  var el  = document.getElementById('zoneBarangays');
+  if (!key || !ZONES[key]) { el.innerHTML = ''; return; }
+  el.innerHTML = '<strong>Covers:</strong> ' + ZONES[key].barangays.join(', ');
+}
+
+/* â”€â”€ Client-side validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+function validateForm() {
+  if (!selectedDate) { alert('Please select a date from the calendar.'); return false; }
+  if (!document.getElementById('zone').value) { alert('Please select a delivery zone.'); return false; }
+  var s = document.getElementById('start_time').value;
+  var e = document.getElementById('end_time').value;
+  if (!s || !e) { alert('Please set start and end time for your shift.'); return false; }
+  var sm = parseInt(s.split(':')[0]) * 60 + parseInt(s.split(':')[1]);
+  var em = parseInt(e.split(':')[0]) * 60 + parseInt(e.split(':')[1]);
+  var dur = em - sm;
+  if (dur < 120) { alert('Shift must be at least 2 hours long.'); return false; }
+  if (dur > 480) { alert('Shift cannot exceed 8 hours.'); return false; }
+  if (selectedDate === TODAY_STR) {
+    var now    = new Date();
+    var nowMin = now.getHours() * 60 + now.getMinutes();
+    if (sm - nowMin < 480) {
+      alert('You must book at least 8 hours before the shift start time.\n\nFor today, the earliest bookable start time is ' +
+        padT(Math.floor((nowMin + 480) / 60)) + ':' + padT((nowMin + 480) % 60) + '.');
+      return false;
+    }
+  }
+  return true;
+}
+function padT(n) { return String(n).padStart(2, '0'); }
+
+/* Start Shift Now */
+function setDuration(hours) {
+  var now = new Date();
+  var endMin = now.getHours() * 60 + now.getMinutes() + hours * 60;
+  if (endMin >= 1440) endMin = 1439; // cap at 23:59
+  document.getElementById('snEndTime').value = padT(Math.floor(endMin / 60)) + ':' + padT(endMin % 60);
+  document.querySelectorAll('.dur-chip').forEach(function(c) { c.classList.remove('sel'); });
+  event.target.classList.add('sel');
+  updateSnLabel();
+}
+function clearChips() {
+  document.querySelectorAll('.dur-chip').forEach(function(c) { c.classList.remove('sel'); });
+  updateSnLabel();
+}
+function updateSnLabel() {
+  var endVal = document.getElementById('snEndTime').value;
+  var lbl    = document.getElementById('snDurLabel');
+  if (!endVal) { lbl.textContent = ''; return; }
+  var now    = new Date();
+  var nowMin = now.getHours() * 60 + now.getMinutes();
+  var em     = parseInt(endVal.split(':')[0]) * 60 + parseInt(endVal.split(':')[1]);
+  var dur    = em - nowMin;
+  if (dur < 0) { lbl.textContent = 'End time must be after now.'; return; }
+  var h = Math.floor(dur / 60), m = dur % 60;
+  lbl.textContent = 'Duration: ' + (h ? h + 'h ' : '') + (m ? m + 'min' : '') + ' (ends ' + endVal + ')';
+}
+document.getElementById('snEndTime').addEventListener('change', updateSnLabel);
+function validateStartNow() {
+  if (!document.getElementById('snZone').value) { alert('Please select a delivery zone.'); return false; }
+  var endVal = document.getElementById('snEndTime').value;
+  if (!endVal) { alert('Please set an end time.'); return false; }
+  var now    = new Date();
+  var nowMin = now.getHours() * 60 + now.getMinutes();
+  var em     = parseInt(endVal.split(':')[0]) * 60 + parseInt(endVal.split(':')[1]);
+  if (em - nowMin < 120) { alert('Shift must be at least 2 hours from now.'); return false; }
+  if (em - nowMin > 480) { alert('Shift cannot exceed 8 hours.'); return false; }
+  return true;
+}
+</script>
+</body>
+</html>

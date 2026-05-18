@@ -1,0 +1,12 @@
+{% extends 'vendor/base.html' %}
+{% block title %}Categories{% endblock %}
+{% block page_title %}Menu Categories{% endblock %}
+{% block content %}
+<div class="page-header"> <h2> Menu Categories</h2> <p>Organize your menu into sections (e.g. Main Dish, Beverages, Sandwiches).</p>
+</div> <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start;"> <!-- Add Category --> <div class="card"> <div class="card-header"><span class="card-title"> Add New Category</span></div> <form method="POST" action="{{ url_for('vendor.category_add') }}"> <div class="form-group"> <label>Category Name *</label> <input type="text" name="name" required placeholder="e.g. Main Dish, Beverages, Sandwiches"> </div> <button type="submit" class="btn btn-primary">Add Category</button> </form> <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid #f3f4f6;"> <p style="font-size:.85rem;color:#6b7280;"> Suggested categories:</p> <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.5rem;"> {% for suggestion in ['Main Dish','Sandwiches','Beverages','Desserts','Appetizers','Salads','Soups','Specials'] %} <button type="button" class="badge badge-gray"
+                onclick="document.querySelector('[name=name]').value='{{ suggestion }}'"
+                style="cursor:pointer;padding:.4rem .8rem;"> {{ suggestion }} </button> {% endfor %} </div> </div> </div> <!-- Category List --> <div class="card"> <div class="card-header"><span class="card-title">All Categories ({{ categories|length }})</span></div> {% if categories %} <div style="display:flex;flex-direction:column;gap:.6rem;"> {% for cat in categories %} <div style="display:flex;justify-content:space-between;align-items:center;
+                  padding:.7rem 1rem;background:#f9fafb;border-radius:8px;"> <div> <strong>{{ cat.name }}</strong> <span style="font-size:.8rem;color:#6b7280;margin-left:.5rem;"> {{ cat.items|length }} item(s) </span> </div> <form method="POST" action="{{ url_for('vendor.category_delete', cat_id=cat.id) }}"
+              onsubmit="return confirm('Delete category? Items will be uncategorized.')"> <button class="btn btn-danger btn-sm"></button> </form> </div> {% endfor %} </div> {% else %} <p class="text-center text-gray" style="padding:1.5rem;">No categories yet.</p> {% endif %} </div>
+</div>
+{% endblock %}

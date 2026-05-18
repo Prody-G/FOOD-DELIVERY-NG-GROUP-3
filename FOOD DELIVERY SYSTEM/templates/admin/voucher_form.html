@@ -1,0 +1,31 @@
+{% extends 'admin/base.html' %}
+{% block title %}{{ 'Edit' if voucher else 'Add' }} Voucher{% endblock %}
+{% block page_title %}{{ 'Edit' if voucher else 'Add' }} Voucher{% endblock %}
+{% block content %}
+<div class="page-header"> <h2> {{ 'Edit Voucher' if voucher else 'Create New Voucher' }}</h2>
+</div>
+<div class="card" style="max-width:620px;"> <form method="POST"> <div class="form-row"> <div class="form-group"> <label>Voucher Code *</label> <input type="text" name="code"
+               value="{{ voucher.code if voucher else '' }}"
+               placeholder="e.g. SAVE20" required
+               style="text-transform:uppercase;"> </div> <div class="form-group"> <label>Discount Type *</label> <select name="discount_type" id="discountType" onchange="toggleMaxDiscount()"> <option value="percentage" {% if voucher and voucher.discount_type == 'percentage' %}selected{% endif %}> Percentage (%) </option> <option value="fixed" {% if voucher and voucher.discount_type == 'fixed' %}selected{% endif %}> Fixed Amount (₱) </option> </select> </div> </div> <div class="form-row"> <div class="form-group"> <label id="discountLabel">Discount Value * <span id="discountUnit" style="color:#22c55e;">(% off)</span></label> <input type="number" name="discount_value" step="0.01" min="0"
+               value="{{ voucher.discount_value if voucher else '' }}"
+               placeholder="e.g. 20" required> </div> <div class="form-group" id="maxDiscountGroup"> <label>Max Discount Amount (₱)</label> <input type="number" name="max_discount" step="0.01" min="0"
+               value="{{ voucher.max_discount if voucher and voucher.max_discount else '' }}"
+               placeholder="e.g. 100"> <small style="color:#6b7280;">Leave blank for no cap</small> </div> </div> <div class="form-row"> <div class="form-group"> <label>Expiration Date</label> <input type="date" name="expiration_date"
+               value="{{ voucher.expiration_date.strftime('%Y-%m-%d') if voucher and voucher.expiration_date else '' }}"> <small style="color:#6b7280;">Leave blank for no expiry</small> </div> <div class="form-group"> <label>Global Usage Limit</label> <input type="number" name="global_usage_limit" min="1"
+               value="{{ voucher.global_usage_limit if voucher and voucher.global_usage_limit else '' }}"
+               placeholder="e.g. 500"> <small style="color:#6b7280;">Leave blank for unlimited</small> </div> </div> <div class="form-group" style="max-width:200px;"> <label>Per-User Limit *</label> <input type="number" name="per_user_limit" min="1"
+             value="{{ voucher.per_user_limit if voucher else 1 }}" required> </div> <div class="flex gap-1"> <button type="submit" class="btn btn-primary"> {{ 'Update Voucher' if voucher else 'Create Voucher' }} </button> <a href="{{ url_for('admin.vouchers') }}" class="btn btn-outline">Cancel</a> </div> </form>
+</div>
+<script>
+function toggleMaxDiscount() {
+  const type = document.getElementById('discountType').value;
+  const unit = document.getElementById('discountUnit');
+  const maxGroup = document.getElementById('maxDiscountGroup');
+  unit.textContent = type === 'percentage' ? '(% off)' : '(₱ off)';
+  maxGroup.style.display = type === 'percentage' ? '' : 'none';
+}
+toggleMaxDiscount();
+document.getElementById('discountType').addEventListener('change', toggleMaxDiscount);
+</script>
+{% endblock %}

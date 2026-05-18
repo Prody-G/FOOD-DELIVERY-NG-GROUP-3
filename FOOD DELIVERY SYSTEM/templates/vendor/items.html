@@ -1,0 +1,29 @@
+{% extends 'vendor/base.html' %}
+{% block title %}Menu Items{% endblock %}
+{% block page_title %}Menu Items{% endblock %}
+{% block content %}
+<div class="page-header flex-between"> <div> <h2> Menu Items</h2> <p>Manage your restaurant's menu.</p> </div> <a href="{{ url_for('vendor.item_add') }}" class="btn btn-primary"> Add Item</a>
+</div> {% if categories %}
+  {% for cat in categories %}
+  {% set cat_items = items|selectattr('category_id','equalto',cat.id)|list %}
+  {% if cat_items %} <div style="margin-bottom:1rem;font-size:.8rem;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.05em;"> {{ cat.name }} </div> <div class="items-grid" style="margin-bottom:1.5rem;"> {% for item in cat_items %}
+    {% include 'vendor/_item_card.html' %}
+    {% endfor %} </div> {% endif %}
+  {% endfor %}
+{% endif %}
+
+{% set uncategorized = items|selectattr('category_id','none')|list %}
+{% if uncategorized %}
+<div style="margin-bottom:1rem;font-size:.8rem;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.05em;"> Uncategorized
+</div>
+<div class="items-grid" style="margin-bottom:1.5rem;"> {% for item in uncategorized %}
+  {% include 'vendor/_item_card.html' %}
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if not items %}
+<div class="card text-center" style="padding:3rem;"> <div style="font-size:3rem;margin-bottom:1rem;"></div> <h3>No items yet</h3> <p class="text-gray mt-1">Start by adding your first menu item.</p> <a href="{{ url_for('vendor.item_add') }}" class="btn btn-primary mt-2">Add First Item</a>
+</div>
+{% endif %}
+{% endblock %}

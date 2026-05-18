@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>{{ vendor.shop_name }} — Unifood</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body> <!-- Navbar -->
+<nav class="customer-nav"> <div class="nav-inner"> <a class="nav-logo" href="{{ url_for('customer.landing') }}">Uni<span>Food</span></a> <div class="nav-actions" style="margin-left:auto;"> {% if session.get('customer_id') %} <a href="{{ url_for('customer.orders') }}" class="btn btn-outline btn-sm"> Orders</a> <a href="{{ url_for('customer.checkout') }}" class="btn btn-primary btn-sm" id="cartNavBtn"> Cart (<span id="cartNavCount">0</span>) </a> {% else %} <a href="{{ url_for('customer.login') }}" class="btn btn-outline btn-sm">Login</a> <a href="{{ url_for('customer.register') }}" class="btn btn-primary btn-sm">Sign Up</a> {% endif %} </div> </div>
+</nav> {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %} <div class="flashes"> {% for cat, msg in messages %} <div class="flash flash-{{ 'success' if cat == 'success' else 'error' }}">{{ msg }}</div> {% endfor %} </div> <script>setTimeout(()=>document.querySelectorAll('.flash').forEach(f=>f.remove()),4000)</script> {% endif %}
+{% endwith %} <!-- Restaurant Banner -->
+{% if vendor.cover_banner %}
+<img src="{{ url_for('static', filename=vendor.cover_banner) }}" class="restaurant-hero" alt="{{ vendor.shop_name }}">
+{% else %}
+<div class="restaurant-hero-placeholder"></div>
+{% endif %} <!-- Restaurant Info -->
+<div style="background:#fff;border-bottom:1px solid #e5e7eb;padding:1rem 1.5rem;"> <div style="max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;"> <div> <h1 style="font-size:1.5rem;margin-bottom:.2rem;">{{ vendor.shop_name }}</h1> {% if vendor.address %}<p style="color:#6b7280;font-size:.875rem;"> {{ vendor.address }}</p>{% endif %}
+      {% if vendor.description %}<p style="font-size:.875rem;margin-top:.3rem;">{{ vendor.description }}</p>{% endif %} </div> <div> <span class="badge badge-success"> Open</span> </div> </div>
+</div> <!-- Menu + Cart Layout -->
+<div class="menu-layout"> <!-- Menu Items --> <div> {% if categories %}
+      {% for cat in categories %}
+        {% set cat_items = cat.items %}
+        {% if cat_items %} <div class="menu-section"> <div class="menu-section-title">{{ cat.name }}</div> <div class="menu-items"> {% for item in cat_items %} <div class="menu-item" {% if not item.is_available %}style="opacity:.7;"{% endif %}> {% if item.image %} <img src="{{ url_for('static', filename=item.image) }}" class="menu-item-img" alt="{{ item.name }}"> {% else %} <div class="menu-item-img-placeholder"></div> {% endif %} <div class="menu-item-info"> <div class="menu-item-name">{{ item.name }}</div> {% if item.description %} <div class="menu-item-desc">{{ item.description }}</div> {% endif %} <div class="menu-item-price">₱{{ '%.2f'|format(item.price) }}</div> </div> <div class="menu-item-actions"> <div class="qty-control" id="qtyControl_{{ item.id }}" style="display:none;"> <button class="qty-btn" onclick="changeQty({{ item.id }}, -1)">−</button> <span class="qty-num" id="qty_{{ item.id }}">0</span> <button class="qty-btn" onclick="changeQty({{ item.id }}, 1)">+</button> </div> {% if item.is_available %}<button class="btn btn-primary btn-sm" id="addBtn_{{ item.id }}"
+                        onclick="addItem({{ item.id }}, '{{ item.name|replace("'","\\'")|replace('"','') }}', {{ item.price }})"> Add </button>{% else %}<span style="font-size:.72rem;font-weight:700;color:#dc2626;background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:.25rem .6rem;">Out of Stock</span>{% endif %} </div> </div> {% endfor %} </div> </div> {% endif %}
+      {% endfor %}
+    {% endif %}
+
+    {% if uncategorized %} <div class="menu-section"> <div class="menu-section-title">Other Items</div> <div class="menu-items"> {% for item in uncategorized %} <div class="menu-item" {% if not item.is_available %}style="opacity:.7;"{% endif %}> {% if item.image %} <img src="{{ url_for('static', filename=item.image) }}" class="menu-item-img" alt="{{ item.name }}"> {% else %} <div class="menu-item-img-placeholder"></div> {% endif %} <div class="menu-item-info"> <div class="menu-item-name">{{ item.name }}</div> {% if item.description %} <div class="menu-item-desc">{{ item.description }}</div> {% endif %} <div class="menu-item-price">₱{{ '%.2f'|format(item.price) }}</div> </div> <div class="menu-item-actions"> <div class="qty-control" id="qtyControl_{{ item.id }}" style="display:none;"> <button class="qty-btn" onclick="changeQty({{ item.id }}, -1)">−</button> <span class="qty-num" id="qty_{{ item.id }}">0</span> <button class="qty-btn" onclick="changeQty({{ item.id }}, 1)">+</button> </div> {% if item.is_available %}<button class="btn btn-primary btn-sm" id="addBtn_{{ item.id }}"
+                    onclick="addItem({{ item.id }}, '{{ item.name|replace("'","\\'")|replace('"','') }}', {{ item.price }})"> Add </button>{% else %}<span style="font-size:.72rem;font-weight:700;color:#dc2626;background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:.25rem .6rem;">Out of Stock</span>{% endif %} </div> </div> {% endfor %} </div> </div> {% endif %}
+
+    {% if not categories and not uncategorized %} <div class="card text-center" style="padding:3rem;"> <div style="font-size:3rem;"></div> <h3>Menu coming soon</h3> <p class="text-gray">This restaurant hasn't added menu items yet.</p> </div> {% endif %} </div> <!-- Cart Sidebar --> <div> <div class="cart-sidebar"> <div class="cart-title"> Your Order</div> <div class="cart-empty" id="cartEmpty">Cart is empty. Add items to start!</div> <div class="cart-items" id="cartItems" style="display:none;"></div> <div class="cart-totals" id="cartTotals" style="display:none;"> <div class="cart-total-row"> <span>Subtotal</span> <span id="cartSubtotal">₱0.00</span> </div> </div> <div id="cartActions" style="display:none;"> {% if session.get('customer_id') %} <a href="{{ url_for('customer.checkout') }}" class="btn btn-primary btn-full btn-lg" id="checkoutBtn"
+           onclick="saveCartToSession()"> Go to Checkout → </a> {% else %} <a href="{{ url_for('customer.login', next=request.url) }}"
+           class="btn btn-primary btn-full btn-lg">Login to Checkout</a> {% endif %} <button class="btn btn-outline btn-full btn-sm" style="margin-top:.4rem;" onclick="clearCart()"> Clear Cart </button> </div> </div> </div>
+</div> <script>
+const VENDOR_ID = {{ vendor.id }};
+const VENDOR_NAME = "{{ vendor.shop_name }}";
+const CART_KEY = 'qb_cart';
+
+let cart = JSON.parse(localStorage.getItem(CART_KEY) || '{}');
+// Reset cart if different vendor
+if (cart.vendor_id && cart.vendor_id !== VENDOR_ID) { cart = {}; }
+
+function saveCart() {
+  cart.vendor_id = VENDOR_ID;
+  cart.vendor_name = VENDOR_NAME;
+  localStorage.setItem(CART_KEY, JSON.stringify(cart));
+  renderCart();
+}
+
+function addItem(id, name, price) {
+  if (!cart.items) cart.items = {};
+  if (!cart.items[id]) cart.items[id] = { id, name, price, quantity: 0 };
+  cart.items[id].quantity++;
+  saveCart();
+  updateItemUI(id);
+}
+
+function changeQty(id, delta) {
+  if (!cart.items || !cart.items[id]) return;
+  cart.items[id].quantity = Math.max(0, cart.items[id].quantity + delta);
+  if (cart.items[id].quantity === 0) delete cart.items[id];
+  saveCart();
+  updateItemUI(id);
+}
+
+function updateItemUI(id) {
+  const qty = (cart.items && cart.items[id]) ? cart.items[id].quantity : 0;
+  const qtyEl = document.getElementById('qty_' + id);
+  const btnEl = document.getElementById('addBtn_' + id);
+  const ctrlEl = document.getElementById('qtyControl_' + id);
+  if (!qtyEl) return;
+  if (qty > 0) {
+    qtyEl.textContent = qty;
+    btnEl.style.display = 'none';
+    ctrlEl.style.display = 'flex';
+  } else {
+    btnEl.style.display = '';
+    ctrlEl.style.display = 'none';
+  }
+}
+
+function renderCart() {
+  const items = cart.items || {};
+  const keys = Object.keys(items);
+  const cartEmpty = document.getElementById('cartEmpty');
+  const cartItemsEl = document.getElementById('cartItems');
+  const cartTotals = document.getElementById('cartTotals');
+  const cartActions = document.getElementById('cartActions');
+  const navCount = document.getElementById('cartNavCount');
+
+  if (keys.length === 0) {
+    cartEmpty.style.display = '';
+    cartItemsEl.style.display = 'none';
+    cartTotals.style.display = 'none';
+    cartActions.style.display = 'none';
+    if (navCount) navCount.textContent = 0;
+    return;
+  }
+
+  cartEmpty.style.display = 'none';
+  cartItemsEl.style.display = '';
+  cartTotals.style.display = '';
+  cartActions.style.display = '';
+
+  let subtotal = 0;
+  let totalQty = 0;
+  cartItemsEl.innerHTML = '';
+  keys.forEach(id => {
+    const item = items[id];
+    subtotal += item.price * item.quantity;
+    totalQty += item.quantity;
+    const div = document.createElement('div');
+    div.className = 'cart-item';
+    div.innerHTML = `<div> <div class="cart-item-name">${item.name}</div> <div class="cart-item-qty">${item.quantity} × ₱${item.price.toFixed(2)}</div> </div> <div style="display:flex;align-items:center;gap:.4rem;"> <span class="cart-item-price">₱${(item.price * item.quantity).toFixed(2)}</span> <button class="cart-remove" onclick="changeQty(${id}, -1)"></button> </div>`;
+    cartItemsEl.appendChild(div);
+  });
+
+  document.getElementById('cartSubtotal').textContent = '₱' + subtotal.toFixed(2);
+  if (navCount) navCount.textContent = totalQty;
+}
+
+function clearCart() {
+  cart = {};
+  localStorage.setItem(CART_KEY, JSON.stringify(cart));
+  renderCart();
+  document.querySelectorAll('[id^=qty_]').forEach(el => updateItemUI(el.id.replace('qty_', '')));
+}
+
+function saveCartToSession() {
+  sessionStorage.setItem('qb_checkout_cart', JSON.stringify(cart));
+}
+
+// Init UI
+renderCart();
+if (cart.items) {
+  Object.keys(cart.items).forEach(id => updateItemUI(id));
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>My Profile — Unifood</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body>
+<nav class="customer-nav"> <div class="nav-inner"> <a class="nav-logo" href="{{ url_for('customer.landing') }}">Uni<span>Food</span></a> <div class="nav-actions" style="margin-left:auto;"> <a href="{{ url_for('customer.orders') }}" class="btn btn-outline btn-sm"> Orders</a> <a href="{{ url_for('customer.logout') }}" class="btn btn-dark btn-sm">Logout</a> </div> </div>
+</nav> {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %} <div class="flashes"> {% for cat, msg in messages %} <div class="flash flash-{{ 'success' if cat == 'success' else 'error' }}">{{ msg }}</div> {% endfor %} </div> <script>setTimeout(()=>document.querySelectorAll('.flash').forEach(f=>f.remove()),4000)</script> {% endif %}
+{% endwith %} <div class="main-content" style="max-width:680px;"> <h2 style="margin-bottom:1.5rem;"> My Profile</h2> <div class="card"> <form method="POST"> <h3 style="margin-bottom:1rem;">Personal Information</h3> <div class="form-row"> <div class="form-group"> <label>Full Name *</label> <input type="text" name="name" value="{{ customer.name }}" required> </div> <div class="form-group"> <label>Email</label> <input type="email" value="{{ customer.email }}" disabled
+                 style="background:#f9fafb;cursor:not-allowed;"> </div> </div> <div class="form-group"> <label>Phone Number</label> <input type="text" name="phone" value="{{ customer.phone or '' }}" placeholder="09XXXXXXXXX"> </div> <h3 style="margin:1.2rem 0 1rem;"> Default Address</h3> <div class="form-group"> <label>Street / Unit / Building</label> <input type="text" name="address" value="{{ customer.address or '' }}"
+               placeholder="e.g. 12 Rizal St., Unit 4B"> </div> <div class="form-row"> <div class="form-group"> <label>Region</label> <input type="text" name="region" value="{{ customer.region or '' }}"
+                 placeholder="e.g. NCR"> </div> <div class="form-group"> <label>Province</label> <input type="text" name="province" value="{{ customer.province or '' }}"
+                 placeholder="e.g. Metro Manila"> </div> </div> <div class="form-row"> <div class="form-group"> <label>City / Municipality</label> <input type="text" name="city" value="{{ customer.city or '' }}"
+                 placeholder="e.g. Quezon City"> </div> <div class="form-group"> <label>Barangay</label> <input type="text" name="barangay" value="{{ customer.barangay or '' }}"
+                 placeholder="e.g. Barangay Commonwealth"> </div> </div> <h3 style="margin:1.2rem 0 1rem;"> Change Password</h3> <div class="form-row"> <div class="form-group"> <label>Current Password</label> <input type="password" name="current_password" placeholder="Enter current password"> </div> <div class="form-group"> <label>New Password</label> <input type="password" name="new_password" placeholder="Leave blank to keep"> </div> </div> <button type="submit" class="btn btn-primary btn-lg">Save Changes</button> </form> </div>
+</div>
+</body>
+</html>

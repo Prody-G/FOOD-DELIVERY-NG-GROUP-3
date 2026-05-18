@@ -1,0 +1,318 @@
+{% extends 'vendor/base.html' %}
+{% block title %}Menu{% endblock %}
+{% block page_title %}Menu{% endblock %}
+{% block content %}
+<style>
+/*  Menu page  */
+.menu-page-head {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:1.5rem; flex-wrap:wrap; gap:.75rem;
+}
+.add-cat-form {
+  display:flex; gap:.5rem; align-items:center;
+  background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px;
+  padding:.55rem .9rem;
+}
+.add-cat-form input[type=text] {
+  border:none; background:transparent; outline:none;
+  font-size:.88rem; color:#111827; width:180px;
+}
+.add-cat-form input[type=text]::placeholder { color:#9ca3af; }
+
+/* Category section */
+.cat-section { margin-bottom:2rem; }
+.cat-header {
+  display:flex; align-items:center; gap:.75rem;
+  margin-bottom:1rem; padding-bottom:.6rem;
+  border-bottom:2px solid #f3f4f6;
+}
+.cat-name { font-size:1rem; font-weight:700; color:#111827; flex:1; }
+.cat-item-count { font-size:.75rem; color:#9ca3af; }
+
+/* Item cards grid */
+.item-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+  gap:.85rem;
+}
+.item-card {
+  background:#fff; border-radius:12px; border:1px solid #e5e7eb;
+  box-shadow:0 1px 4px rgba(0,0,0,.06); overflow:hidden;
+  display:flex; flex-direction:column;
+  transition:box-shadow .18s;
+}
+.item-card:hover { box-shadow:0 4px 14px rgba(0,0,0,.1); }
+.item-img {
+  width:100%; height:130px; object-fit:cover; display:block;
+}
+.item-img-placeholder {
+  width:100%; height:130px; background:#f3f4f6;
+  display:flex; align-items:center; justify-content:center;
+}
+.item-body { padding:.75rem .9rem; flex:1; display:flex; flex-direction:column; gap:.25rem; }
+.item-name { font-size:.9rem; font-weight:700; color:#111827; }
+.item-desc { font-size:.75rem; color:#9ca3af; line-height:1.4; flex:1; }
+.item-price { font-size:1rem; font-weight:800; color:#22c55e; }
+.item-avail { font-size:.72rem; }
+.item-actions {
+  padding:.6rem .9rem .75rem; display:flex; gap:.4rem; flex-wrap:wrap;
+  border-top:1px solid #f3f4f6;
+}
+
+/* Modal */
+.modal-overlay {
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,.45);
+  z-index:500; align-items:center; justify-content:center;
+  padding:1rem;
+}
+.modal-overlay.open { display:flex; }
+.modal-box {
+  background:#fff; border-radius:16px; width:100%; max-width:480px;
+  max-height:90vh; overflow-y:auto;
+  box-shadow:0 20px 60px rgba(0,0,0,.2);
+}
+.modal-head {
+  padding:1.1rem 1.5rem .9rem; display:flex; align-items:center;
+  justify-content:space-between; border-bottom:1px solid #f3f4f6;
+}
+.modal-head h3 { margin:0; font-size:1rem; font-weight:700; }
+.modal-body { padding:1.25rem 1.5rem; }
+.modal-foot { padding:.75rem 1.5rem 1.25rem; display:flex; gap:.6rem; justify-content:flex-end; }
+.modal-close { background:none; border:none; font-size:1.3rem; cursor:pointer; color:#9ca3af; padding:.2rem; }
+.modal-close:hover { color:#111827; }
+
+/* Empty state */
+.empty-cat {
+  background:#f9fafb; border:2px dashed #e5e7eb; border-radius:10px;
+  padding:1.5rem; text-align:center; color:#9ca3af; font-size:.85rem;
+}
+</style>
+
+<!-- Page header -->
+<div class="menu-page-head">
+  <div>
+    <h2 style="margin:0;font-size:1.2rem;">Menu Management</h2>
+    <p style="margin:.2rem 0 0;font-size:.82rem;color:#6b7280;">Add categories then add items under each one.</p>
+  </div>
+  <form method="POST" action="{{ url_for('vendor.category_add') }}" class="add-cat-form">
+    <svg width="16" height="16" fill="none" stroke="#22c55e" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+    </svg>
+    <input type="text" name="name" placeholder="New category name" required>
+    <button type="submit" class="btn btn-primary btn-sm">Add</button>
+  </form>
+</div>
+
+{% if not categories and not uncategorized %}
+<div style="text-align:center;padding:4rem 1rem;color:#9ca3af;">
+  <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin:0 auto 1rem;display:block;">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+  </svg>
+  <p>Start by adding a category above, then add menu items to it.</p>
+</div>
+{% endif %}
+
+<!-- Category sections -->
+{% for cat in categories %}
+<div class="cat-section">
+  <div class="cat-header">
+    <span class="cat-name">{{ cat.name }}</span>
+    <span class="cat-item-count">{{ cat.items|length }} item{{ 's' if cat.items|length != 1 else '' }}</span>
+    <button class="btn btn-primary btn-sm" onclick="openAddModal({{ cat.id }}, '{{ cat.name|e }}')">
+      + Add Item
+    </button>
+    <form method="POST" action="{{ url_for('vendor.category_delete', cat_id=cat.id) }}"
+          onsubmit="return confirm('Delete category &quot;{{ cat.name }}&quot; and unlink its items?')">
+      <button class="btn btn-danger btn-sm">Delete Category</button>
+    </form>
+  </div>
+
+  {% if cat.items %}
+  <div class="item-grid">
+    {% for item in cat.items %}
+    <div class="item-card">
+      {% if item.image %}
+      <img src="{{ url_for('static', filename=item.image) }}" class="item-img" alt="{{ item.name }}">
+      {% else %}
+      <div class="item-img-placeholder">
+        <svg width="28" height="28" fill="none" stroke="#d1d5db" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+      </div>
+      {% endif %}
+      <div class="item-body">
+        <div class="item-name">{{ item.name }}</div>
+        {% if item.description %}<div class="item-desc">{{ item.description[:60] }}{% if item.description|length > 60 %}…{% endif %}</div>{% endif %}
+        <div class="item-price">&#8369;{{ '%.2f'|format(item.price) }}</div>
+        <div class="item-avail">
+          {% if item.is_available %}
+          <span style="color:#16a34a;">&#9679; Available</span>
+          {% else %}
+          <span style="color:#dc2626;">&#9679; Out of Stock</span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="item-actions">
+        <a href="{{ url_for('vendor.item_edit', item_id=item.id) }}" class="btn btn-info btn-sm">Edit</a>
+        <form method="POST" action="{{ url_for('vendor.item_toggle', item_id=item.id) }}" style="display:inline;">
+          {% if item.is_available %}
+          <button type="submit" class="btn btn-warning btn-sm">Mark Out of Stock</button>
+          {% else %}
+          <button type="submit" class="btn btn-primary btn-sm">Mark Available</button>
+          {% endif %}
+        </form>
+        <form method="POST" action="{{ url_for('vendor.item_delete', item_id=item.id) }}"
+              onsubmit="return confirm('Delete this item?')" style="display:inline;">
+          <button class="btn btn-danger btn-sm">Del</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-cat">No items in this category yet. Click <strong>+ Add Item</strong> to get started.</div>
+  {% endif %}
+</div>
+{% endfor %}
+
+<!-- Uncategorized items -->
+{% if uncategorized %}
+<div class="cat-section">
+  <div class="cat-header">
+    <span class="cat-name" style="color:#6b7280;">Uncategorized</span>
+    <span class="cat-item-count">{{ uncategorized|length }} item{{ 's' if uncategorized|length != 1 else '' }}</span>
+  </div>
+  <div class="item-grid">
+    {% for item in uncategorized %}
+    <div class="item-card">
+      {% if item.image %}
+      <img src="{{ url_for('static', filename=item.image) }}" class="item-img" alt="{{ item.name }}">
+      {% else %}
+      <div class="item-img-placeholder">
+        <svg width="28" height="28" fill="none" stroke="#d1d5db" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+      </div>
+      {% endif %}
+      <div class="item-body">
+        <div class="item-name">{{ item.name }}</div>
+        {% if item.description %}<div class="item-desc">{{ item.description[:60] }}{% if item.description|length > 60 %}…{% endif %}</div>{% endif %}
+        <div class="item-price">&#8369;{{ '%.2f'|format(item.price) }}</div>
+        <div class="item-avail">
+          {% if item.is_available %}<span style="color:#16a34a;">&#9679; Available</span>{% else %}<span style="color:#dc2626;">&#9679; Out of Stock</span>{% endif %}
+        </div>
+      </div>
+      <div class="item-actions">
+        <a href="{{ url_for('vendor.item_edit', item_id=item.id) }}" class="btn btn-info btn-sm">Edit</a>
+        <form method="POST" action="{{ url_for('vendor.item_toggle', item_id=item.id) }}" style="display:inline;">
+          {% if item.is_available %}
+          <button type="submit" class="btn btn-warning btn-sm">Mark Out of Stock</button>
+          {% else %}
+          <button type="submit" class="btn btn-primary btn-sm">Mark Available</button>
+          {% endif %}
+        </form>
+        <form method="POST" action="{{ url_for('vendor.item_delete', item_id=item.id) }}"
+              onsubmit="return confirm('Delete this item?')" style="display:inline;">
+          <button class="btn btn-danger btn-sm">Del</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Add Item Modal -->
+<div class="modal-overlay" id="addItemModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Add Item to <span id="modalCatName" style="color:#22c55e;"></span></h3>
+      <button class="modal-close" onclick="closeAddModal()">&times;</button>
+    </div>
+    <form method="POST" action="{{ url_for('vendor.item_add') }}" enctype="multipart/form-data">
+      <input type="hidden" name="category_id" id="modalCatId">
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Item Name *</label>
+          <input type="text" name="name" required placeholder="e.g. Adobo Rice Bowl">
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea name="description" rows="2" placeholder="Brief description of the dish"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Price (&#8369;) *</label>
+          <input type="number" name="price" step="0.01" min="0" required placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label>Item Photo</label>
+          <div class="upload-box" id="modalImgBox" data-input="modalImgInput">
+            <div id="modalImgBox_placeholder">
+              <div class="upload-box-icon">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+              </div>
+              <div class="upload-box-title" style="font-size:.85rem;">Click to upload photo</div>
+              <div class="upload-box-sub" style="font-size:.75rem;">JPG, PNG, WebP — optional</div>
+            </div>
+            <div class="upload-box-preview" id="modalImgBox_preview" style="display:none;"></div>
+          </div>
+          <input type="file" id="modalImgInput" name="image" accept="image/*" style="display:none"
+                 onchange="handleModalImg(this)">
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-sm" onclick="closeAddModal()"
+                style="background:#f3f4f6;color:#374151;">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add Item</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openAddModal(catId, catName) {
+  document.getElementById('modalCatId').value = catId;
+  document.getElementById('modalCatName').textContent = catName;
+  document.getElementById('addItemModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeAddModal() {
+  document.getElementById('addItemModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.getElementById('addItemModal').addEventListener('click', function(e) {
+  if (e.target === this) closeAddModal();
+});
+
+function handleModalImg(input) {
+  const box = document.getElementById('modalImgBox');
+  const ph  = document.getElementById('modalImgBox_placeholder');
+  const pv  = document.getElementById('modalImgBox_preview');
+  const file = input.files[0];
+  if (!file) return;
+  box.classList.add('has-file');
+  const reader = new FileReader();
+  reader.onload = e => {
+    pv.innerHTML = '<img src="' + e.target.result + '" style="max-height:120px;border-radius:8px;margin:0 auto;display:block;">';
+    pv.style.display = ''; ph.style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+const modalImgBox = document.getElementById('modalImgBox');
+modalImgBox.addEventListener('dragover', e => { e.preventDefault(); modalImgBox.classList.add('dragover'); });
+modalImgBox.addEventListener('dragleave', () => modalImgBox.classList.remove('dragover'));
+modalImgBox.addEventListener('drop', e => {
+  e.preventDefault(); modalImgBox.classList.remove('dragover');
+  const input = document.getElementById('modalImgInput');
+  if (!e.dataTransfer.files.length) return;
+  const dt = new DataTransfer(); dt.items.add(e.dataTransfer.files[0]);
+  input.files = dt.files; handleModalImg(input);
+});
+modalImgBox.addEventListener('click', () => document.getElementById('modalImgInput').click());
+</script>
+{% endblock %}

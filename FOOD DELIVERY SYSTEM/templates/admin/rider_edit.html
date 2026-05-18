@@ -1,0 +1,224 @@
+{% extends 'admin/base.html' %}
+{% block title %}Edit Rider{% endblock %}
+{% block page_title %}Edit Rider{% endblock %}
+{% block content %}
+
+<div class="page-header flex-between" style="margin-bottom:1.5rem;">
+  <div>
+    <h2>Edit Rider — {{ rider.name }}</h2>
+    <p style="color:#6b7280;font-size:.9rem;">{{ rider.email }}</p>
+  </div>
+  <a href="{{ url_for('admin.riders') }}" class="btn btn-outline">Back to Riders</a>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 340px;gap:1.5rem;align-items:start;">
+
+  <!-- Left: edit form -->
+  <div class="card">
+    <form method="POST">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Full Name *</label>
+          <input type="text" name="name" value="{{ rider.name }}" required>
+        </div>
+        <div class="form-group">
+          <label>Email *</label>
+          <input type="email" name="email" value="{{ rider.email }}" required>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Phone</label>
+          <input type="text" name="phone" value="{{ rider.phone or '' }}">
+        </div>
+        <div class="form-group">
+          <label>Vehicle Type</label>
+          <select name="vehicle_type">
+            <option value="">-- Select --</option>
+            {% for v in ['Walker','Motorcycle','Vehicle','Bicycle'] %}
+            <option {% if rider.vehicle_type == v %}selected{% endif %} value="{{ v }}">{{ v }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>License Number</label>
+          <input type="text" name="license_number" value="{{ rider.license_number or '' }}">
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select name="status">
+            {% for s in ['pending','approved','rejected','suspended'] %}
+            <option {% if rider.status == s %}selected{% endif %} value="{{ s }}">{{ s.title() }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>New Password <span style="font-weight:400;color:#9ca3af;">(leave blank to keep current)</span></label>
+        <input type="password" name="password" placeholder="Leave blank to keep unchanged">
+      </div>
+      <div class="flex gap-1" style="margin-top:.5rem;">
+        <button type="submit" class="btn btn-primary">Update Rider</button>
+        <a href="{{ url_for('admin.riders') }}" class="btn btn-outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Right: document panel -->
+  <div>
+    {% if rider.vehicle_type == 'Walker' %}
+    <!-- Walker document cards -->
+    <div class="card" style="padding:1.25rem;">
+      <div style="font-size:.85rem;font-weight:700;color:#111827;margin-bottom:1rem;padding-bottom:.6rem;border-bottom:1px solid #f3f4f6;">
+        Walker Documents
+      </div>
+
+      <!-- COR -->
+      <div style="border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;margin-bottom:.85rem;">
+        <div style="padding:.7rem 1rem;background:#f8fafc;display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:.82rem;font-weight:700;color:#374151;">Certificate of Registration</div>
+            <div style="font-size:.72rem;color:#9ca3af;margin-top:.1rem;">COR</div>
+          </div>
+          {% if rider.cor_document %}
+            <span class="doc-badge-ok">Uploaded</span>
+          {% else %}
+            <span class="doc-badge-miss">Missing</span>
+          {% endif %}
+        </div>
+        {% if rider.cor_document %}
+        <div style="padding:.65rem 1rem;border-top:1px solid #f3f4f6;">
+          <a href="{{ url_for('static', filename=rider.cor_document) }}" target="_blank"
+             class="btn btn-outline btn-sm" style="width:100%;justify-content:center;">
+            View COR Document
+          </a>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- School ID -->
+      <div style="border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;margin-bottom:.85rem;">
+        <div style="padding:.7rem 1rem;background:#f8fafc;display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:.82rem;font-weight:700;color:#374151;">School ID</div>
+            <div style="font-size:.72rem;color:#9ca3af;margin-top:.1rem;">Valid School Identification</div>
+          </div>
+          {% if rider.school_id_document %}
+            <span class="doc-badge-ok">Uploaded</span>
+          {% else %}
+            <span class="doc-badge-miss">Missing</span>
+          {% endif %}
+        </div>
+        {% if rider.school_id_document %}
+        <div style="padding:.65rem 1rem;border-top:1px solid #f3f4f6;">
+          <a href="{{ url_for('static', filename=rider.school_id_document) }}" target="_blank"
+             class="btn btn-outline btn-sm" style="width:100%;justify-content:center;">
+            View School ID
+          </a>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- PSA -->
+      <div style="border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;">
+        <div style="padding:.7rem 1rem;background:#f8fafc;display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:.82rem;font-weight:700;color:#374151;">PSA Birth Certificate</div>
+            <div style="font-size:.72rem;color:#9ca3af;margin-top:.1rem;">Philippine Statistics Authority</div>
+          </div>
+          {% if rider.psa_document %}
+            <span class="doc-badge-ok">Uploaded</span>
+          {% else %}
+            <span class="doc-badge-miss">Missing</span>
+          {% endif %}
+        </div>
+        {% if rider.psa_document %}
+        <div style="padding:.65rem 1rem;border-top:1px solid #f3f4f6;">
+          <a href="{{ url_for('static', filename=rider.psa_document) }}" target="_blank"
+             class="btn btn-outline btn-sm" style="width:100%;justify-content:center;">
+            View PSA Certificate
+          </a>
+        </div>
+        {% endif %}
+      </div>
+
+      {% set docs_ok = (rider.cor_document and rider.school_id_document and rider.psa_document) %}
+      <div style="margin-top:1rem;padding:.7rem;border-radius:8px;text-align:center;
+                  {% if docs_ok %}background:#f0fdf4;{% else %}background:#fff7ed;{% endif %}">
+        <span style="font-size:.8rem;font-weight:600;
+                     {% if docs_ok %}color:#166534;{% else %}color:#92400e;{% endif %}">
+          {% if docs_ok %}All documents submitted{% else %}Documents incomplete{% endif %}
+        </span>
+      </div>
+    </div>
+
+    {% else %}
+    <!-- Non-walker: show ID info card -->
+    <div class="card" style="padding:1.25rem;">
+      <div style="font-size:.85rem;font-weight:700;color:#111827;margin-bottom:1rem;padding-bottom:.6rem;border-bottom:1px solid #f3f4f6;">
+        Rider Information
+      </div>
+      <div style="margin-bottom:.75rem;">
+        <div style="font-size:.72rem;color:#9ca3af;font-weight:600;text-transform:uppercase;margin-bottom:.2rem;">Vehicle Type</div>
+        <div style="font-size:.9rem;font-weight:600;color:#111827;">{{ rider.vehicle_type or '—' }}</div>
+      </div>
+      <div style="margin-bottom:.75rem;">
+        <div style="font-size:.72rem;color:#9ca3af;font-weight:600;text-transform:uppercase;margin-bottom:.2rem;">License / Plate No.</div>
+        <div style="font-size:.9rem;font-weight:600;color:#111827;">{{ rider.license_number or '—' }}</div>
+      </div>
+      <div>
+        <div style="font-size:.72rem;color:#9ca3af;font-weight:600;text-transform:uppercase;margin-bottom:.2rem;">Gov. ID Number</div>
+        <div style="font-size:.9rem;font-weight:600;color:#111827;">{{ rider.id_number or '—' }}</div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Quick actions -->
+    {% if rider.status == 'pending' %}
+    <div class="card" style="padding:1.25rem;">
+      <div style="font-size:.85rem;font-weight:700;color:#111827;margin-bottom:.85rem;">Quick Actions</div>
+      <form method="POST" action="{{ url_for('admin.rider_approve', rider_id=rider.id) }}" style="margin-bottom:.5rem;">
+        <button class="btn btn-primary btn-full">Approve Application</button>
+      </form>
+      <button class="btn btn-danger btn-full"
+              onclick="showRejectModal({{ rider.id }}, '{{ rider.name }}')">
+        Reject Application
+      </button>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Reject Modal -->
+<div id="rejectModal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Reject Rider Application</h3>
+      <button class="modal-close" onclick="closeRejectModal()">&times;</button>
+    </div>
+    <p id="rejectName" class="mb-2" style="color:#6b7280;"></p>
+    <form id="rejectForm" method="POST">
+      <div class="form-group">
+        <label>Rejection Reason</label>
+        <textarea name="reason" rows="3" placeholder="Provide a reason for rejection..." required></textarea>
+      </div>
+      <div class="flex gap-1">
+        <button type="submit" class="btn btn-danger btn-full">Reject Application</button>
+        <button type="button" class="btn btn-outline" onclick="closeRejectModal()">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+function showRejectModal(id, name) {
+  document.getElementById('rejectName').textContent = 'Rejecting: ' + name;
+  document.getElementById('rejectForm').action = '/admin/riders/' + id + '/reject';
+  document.getElementById('rejectModal').classList.remove('hidden');
+}
+function closeRejectModal() {
+  document.getElementById('rejectModal').classList.add('hidden');
+}
+</script>
+{% endblock %}

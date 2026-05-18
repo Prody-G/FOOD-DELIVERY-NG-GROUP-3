@@ -1,0 +1,218 @@
+{% extends 'admin/base.html' %}
+{% block title %}Rider Management{% endblock %}
+{% block page_title %}Rider Management{% endblock %}
+{% block content %}
+
+<div class="page-header flex-between">
+  <div>
+    <h2>Rider Management</h2>
+    <p>Manage rider applications and accounts.</p>
+  </div>
+  <a href="{{ url_for('admin.rider_add') }}" class="btn btn-primary">+ Add Rider</a>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <a href="{{ url_for('admin.riders', tab='all') }}"
+     class="tab-btn {% if tab == 'all' %}active{% endif %}">
+    All Riders{% if tab == 'all' %} ({{ riders|length }}){% endif %}
+  </a>
+  <a href="{{ url_for('admin.riders', tab='pending') }}"
+     class="tab-btn {% if tab == 'pending' %}active{% endif %}">
+    Pending Applications{% if tab == 'pending' %} ({{ riders|length }}){% endif %}
+  </a>
+  <a href="{{ url_for('admin.riders', tab='rejected') }}"
+     class="tab-btn {% if tab == 'rejected' %}active{% endif %}">
+    Rejected Archive
+  </a>
+</div>
+
+{% if tab == 'pending' %}
+  <!--  Pending: Card view with document status  -->
+  {% if riders %}
+  <div class="rider-cards">
+    {% for rider in riders %}
+    <div class="rider-app-card">
+      <div class="rider-app-card-header">
+        <div>
+          <div class="rider-app-name">{{ rider.name }}</div>
+          <div class="rider-app-meta">{{ rider.email }}</div>
+          <div class="rider-app-meta">{{ rider.phone or 'No phone' }}</div>
+        </div>
+        <div style="text-align:right;">
+          <span class="badge badge-warning">Pending</span>
+          <div style="font-size:.75rem;color:#9ca3af;margin-top:.3rem;">
+            {{ rider.created_at.strftime('%b %d, %Y') }}
+          </div>
+          <div style="margin-top:.4rem;">
+            <span style="background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;border-radius:999px;font-size:.73rem;font-weight:700;padding:.18rem .6rem;">
+              {{ rider.vehicle_type or 'Unknown' }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="rider-app-card-body">
+        {% if rider.vehicle_type == 'Walker' %}
+        <!-- Walker: show document upload status -->
+        <div style="font-size:.78rem;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.6rem;">
+          Required Documents
+        </div>
+        <div class="doc-row">
+          <div class="doc-label">Certificate of Registration (COR)</div>
+          {% if rider.cor_document %}
+            <span class="doc-badge-ok">Uploaded</span>
+            <a href="{{ url_for('static', filename=rider.cor_document) }}" target="_blank" class="doc-view-link">View</a>
+          {% else %}
+            <span class="doc-badge-miss">Missing</span>
+          {% endif %}
+        </div>
+        <div class="doc-row">
+          <div class="doc-label">Valid School ID</div>
+          {% if rider.school_id_document %}
+            <span class="doc-badge-ok">Uploaded</span>
+            <a href="{{ url_for('static', filename=rider.school_id_document) }}" target="_blank" class="doc-view-link">View</a>
+          {% else %}
+            <span class="doc-badge-miss">Missing</span>
+          {% endif %}
+        </div>
+        <div class="doc-row">
+          <div class="doc-label">PSA Birth Certificate</div>
+          {% if rider.psa_document %}
+            <span class="doc-badge-ok">Uploaded</span>
+            <a href="{{ url_for('static', filename=rider.psa_document) }}" target="_blank" class="doc-view-link">View</a>
+          {% else %}
+            <span class="doc-badge-miss">Missing</span>
+          {% endif %}
+        </div>
+        {% else %}
+        <!-- Non-walker: show license and ID info -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;">
+          <div>
+            <div style="font-size:.72rem;color:#9ca3af;font-weight:600;text-transform:uppercase;">License / Plate</div>
+            <div style="font-size:.85rem;font-weight:600;color:#111827;margin-top:.1rem;">{{ rider.license_number or '—' }}</div>
+          </div>
+          <div>
+            <div style="font-size:.72rem;color:#9ca3af;font-weight:600;text-transform:uppercase;">Gov. ID No.</div>
+            <div style="font-size:.85rem;font-weight:600;color:#111827;margin-top:.1rem;">{{ rider.id_number or '—' }}</div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="rider-app-card-footer">
+        <form method="POST" action="{{ url_for('admin.rider_approve', rider_id=rider.id) }}">
+          <button class="btn btn-primary btn-sm">Approve</button>
+        </form>
+        <button class="btn btn-danger btn-sm"
+                onclick="showRejectModal({{ rider.id }}, '{{ rider.name }}')">
+          Reject
+        </button>
+        <a href="{{ url_for('admin.rider_edit', rider_id=rider.id) }}"
+           class="btn btn-outline btn-sm" style="margin-left:auto;">View / Edit</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="card text-center" style="padding:3rem;">
+    <div style="font-size:2.5rem;margin-bottom:.75rem;opacity:.3;">&#9203;</div>
+    <h3>No pending applications</h3>
+    <p class="text-gray mt-1">All rider applications have been reviewed.</p>
+  </div>
+  {% endif %}
+
+{% else %}
+  <!--  All / Rejected: Table view  -->
+  <div class="card">
+    {% if riders %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Vehicle</th>
+            <th>License #</th>
+            <th>Status</th>
+            <th>Applied</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for rider in riders %}
+          <tr>
+            <td><strong>{{ rider.name }}</strong></td>
+            <td>{{ rider.email }}</td>
+            <td>{{ rider.phone or '—' }}</td>
+            <td>{{ rider.vehicle_type or '—' }}</td>
+            <td>{{ rider.license_number or '—' }}</td>
+            <td>
+              <span class="badge
+                {% if rider.status == 'approved' %}badge-success
+                {% elif rider.status == 'pending' %}badge-warning
+                {% elif rider.status == 'rejected' %}badge-danger
+                {% else %}badge-gray{% endif %}">
+                {{ rider.status.title() }}
+              </span>
+            </td>
+            <td>{{ rider.created_at.strftime('%b %d, %Y') }}</td>
+            <td>
+              <div class="actions">
+                <a href="{{ url_for('admin.rider_edit', rider_id=rider.id) }}"
+                   class="btn btn-info btn-sm">Edit</a>
+                <form method="POST" action="{{ url_for('admin.rider_delete', rider_id=rider.id) }}"
+                      onsubmit="return confirm('Delete this rider?')">
+                  <button class="btn btn-danger btn-sm">Delete</button>
+                </form>
+              </div>
+              {% if rider.status == 'rejected' and rider.rejection_reason %}
+              <small class="text-danger" style="display:block;margin-top:.3rem;font-size:.76rem;">
+                Reason: {{ rider.rejection_reason }}
+              </small>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-center text-gray" style="padding:2.5rem;">No riders in this category.</p>
+    {% endif %}
+  </div>
+{% endif %}
+
+<!-- Reject Modal -->
+<div id="rejectModal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Reject Rider Application</h3>
+      <button class="modal-close" onclick="closeRejectModal()">&times;</button>
+    </div>
+    <p id="rejectName" class="mb-2" style="color:#6b7280;"></p>
+    <form id="rejectForm" method="POST">
+      <div class="form-group">
+        <label>Rejection Reason</label>
+        <textarea name="reason" rows="3" placeholder="Provide a reason for rejection..." required></textarea>
+      </div>
+      <div class="flex gap-1">
+        <button type="submit" class="btn btn-danger btn-full">Reject Application</button>
+        <button type="button" class="btn btn-outline" onclick="closeRejectModal()">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function showRejectModal(id, name) {
+  document.getElementById('rejectName').textContent = 'Rejecting: ' + name;
+  document.getElementById('rejectForm').action = '/admin/riders/' + id + '/reject';
+  document.getElementById('rejectModal').classList.remove('hidden');
+}
+function closeRejectModal() {
+  document.getElementById('rejectModal').classList.add('hidden');
+}
+</script>
+{% endblock %}

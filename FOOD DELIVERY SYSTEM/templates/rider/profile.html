@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>My Profile — UniFood Rider</title>
+<style>
+:root{--blue:#1d4ed8;--green:#15803d;--green-light:#f0fdf4;--green-border:#bbf7d0;--gray-50:#f8fafc;--gray-100:#f1f5f9;--gray-200:#e2e8f0;--gray-400:#94a3b8;--gray-600:#475569;--gray-800:#1e293b;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--gray-50);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--gray-800);font-size:14px;}
+a{text-decoration:none;color:inherit;}
+.r-nav{background:#fff;border-bottom:1px solid var(--gray-200);padding:0 1rem;display:flex;align-items:center;height:52px;gap:1rem;position:sticky;top:0;z-index:100;}
+.r-nav-brand{font-weight:800;font-size:1rem;color:var(--blue);}
+.r-nav-links{display:flex;gap:.25rem;margin-left:auto;}
+.r-nav-link{padding:.35rem .75rem;border-radius:6px;font-size:.8rem;font-weight:600;color:var(--gray-600);}
+.r-nav-link:hover,.r-nav-link.active{background:var(--gray-100);color:var(--gray-800);}
+.r-nav-link.danger{color:#dc2626;}
+.r-nav-link.danger:hover{background:#fef2f2;}
+.wrap{max-width:540px;margin:0 auto;padding:1rem;}
+.profile-card{background:#fff;border:1px solid var(--gray-200);border-radius:14px;padding:1.5rem 1.2rem;margin-bottom:1rem;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.07);}
+.avatar{width:72px;height:72px;border-radius:50%;background:var(--blue);color:#fff;font-size:2rem;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;}
+.profile-name{font-size:1.25rem;font-weight:800;margin-bottom:.2rem;}
+.profile-vehicle{font-size:.82rem;color:var(--gray-600);margin-bottom:.6rem;}
+.batch-pill{display:inline-block;font-size:.72rem;font-weight:700;border-radius:20px;padding:.2rem .7rem;}
+.batch-Gold{background:#fef9c3;color:#854d0e;}
+.batch-Silver{background:#f1f5f9;color:#475569;}
+.batch-Bronze{background:#fff7ed;color:#9a3412;}
+.batch-Standard{background:var(--gray-100);color:var(--gray-600);}
+.stars-row{display:flex;justify-content:center;align-items:center;gap:.25rem;margin:.75rem 0 .25rem;}
+.star{font-size:1.3rem;line-height:1;color:#e2e8f0;}
+.star.filled{color:#f59e0b;}
+.rating-label{font-size:.85rem;color:var(--gray-600);}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:1rem;}
+.stat-card{background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:.9rem .6rem;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+.stat-val{font-size:1.25rem;font-weight:800;color:var(--blue);}
+.stat-lbl{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--gray-400);margin-top:.2rem;}
+.sec-hd{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray-400);margin:.25rem 0 .6rem;padding-left:.1rem;}
+.r-card{background:#fff;border:1px solid var(--gray-200);border-radius:12px;margin-bottom:.75rem;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.rating-item{padding:.75rem 1rem;border-bottom:1px solid var(--gray-100);}
+.rating-item:last-child{border-bottom:none;}
+.rating-item-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:.25rem;}
+.rating-stars{display:flex;gap:.15rem;}
+.r-star{font-size:.9rem;color:#d1d5db;}
+.r-star.filled{color:#f59e0b;}
+.rating-date{font-size:.68rem;color:var(--gray-400);}
+.rating-comment{font-size:.8rem;color:var(--gray-600);font-style:italic;}
+.no-ratings{padding:2rem;text-align:center;font-size:.82rem;color:var(--gray-400);}
+</style>
+</head>
+<body>
+<nav class="r-nav">
+  <span class="r-nav-brand">UniFood Rider</span>
+  <div class="r-nav-links">
+    <a href="{{ url_for('rider.dashboard') }}" class="r-nav-link">Dashboard</a>
+    <a href="{{ url_for('rider.shifts') }}"    class="r-nav-link">Shifts</a>
+    <a href="{{ url_for('rider.profile') }}"   class="r-nav-link active">Profile</a>
+    <a href="{{ url_for('rider.logout') }}"    class="r-nav-link danger">Log Out</a>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="profile-card">
+    {% if rider.profile_picture %}
+    <img src="{{ url_for('static', filename=rider.profile_picture) }}"
+         style="width:80px;height:80px;border-radius:50%;object-fit:cover;margin:0 auto 1rem;display:block;border:3px solid #e2e8f0;">
+    {% else %}
+    <div class="avatar">{{ rider.name[0]|upper }}</div>
+    {% endif %}
+    <div class="profile-name">{{ rider.name }}</div>
+    <div class="profile-vehicle">
+      {{ rider.vehicle_type|title if rider.vehicle_type else 'Rider' }} &mdash; {{ rider.location or 'Makati' }}
+    </div>
+    <span class="batch-pill batch-{{ rider.batch_level }}">{{ rider.batch_level }} Level</span>
+
+    {% set avg = rider.avg_rating %}
+    <div class="stars-row">
+      {% for i in range(1, 6) %}
+        <span class="star {% if i <= avg|int %}filled{% elif (i - avg) < 1 and (avg % 1) >= 0.5 %}filled{% else %}{% endif %}">&#9733;</span>
+      {% endfor %}
+    </div>
+    <div class="rating-label">
+      <strong>{{ '%.1f'|format(rider.avg_rating) }}</strong> / 5.0 &mdash;
+      {{ rider.total_ratings }} review{% if rider.total_ratings != 1 %}s{% endif %}
+    </div>
+
+    <!-- Photo upload -->
+    <form method="POST" action="{{ url_for('rider.upload_profile_photo') }}"
+          enctype="multipart/form-data" style="margin-top:1rem;">
+      <label style="cursor:pointer;display:inline-block;padding:.35rem .9rem;background:var(--gray-100);border:1px solid var(--gray-200);border-radius:8px;font-size:.76rem;font-weight:600;color:var(--gray-600);">
+        Change Photo
+        <input type="file" name="profile_picture" accept="image/*"
+               style="display:none;" onchange="this.form.submit()">
+      </label>
+    </form>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-val">{{ total_delivered }}</div>
+      <div class="stat-lbl">Deliveries</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val">{{ rider.acceptance_rate }}%</div>
+      <div class="stat-lbl">Acceptance</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val">{{ completion_rate }}%</div>
+      <div class="stat-lbl">Completion</div>
+    </div>
+  </div>
+
+  <div style="margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center;padding:.85rem 1.1rem;border-radius:12px;background:#fff;border:1px solid var(--gray-200);box-shadow:0 1px 3px rgba(0,0,0,.05);">
+    <div>
+      <div class="stat-lbl">Total Lifetime Earnings</div>
+      <div style="font-size:1.3rem;font-weight:800;color:var(--blue);margin-top:.2rem;">&#8369;{{ '%.2f'|format(total_earned) }}</div>
+    </div>
+    <div style="font-size:.72rem;color:var(--gray-400);text-align:right;">After 20%<br>platform fee</div>
+  </div>
+
+  <p class="sec-hd">Recent Customer Ratings</p>
+  <div class="r-card">
+    {% if recent_ratings %}
+      {% for r in recent_ratings %}
+      <div class="rating-item">
+        <div class="rating-item-hd">
+          <div class="rating-stars">
+            {% for i in range(1, 6) %}
+            <span class="r-star {% if i <= r.rating %}filled{% endif %}">&#9733;</span>
+            {% endfor %}
+          </div>
+          <span class="rating-date">{{ r.created_at.strftime('%b %d, %Y') }}</span>
+        </div>
+        {% if r.comment %}
+        <div class="rating-comment">"{{ r.comment }}"</div>
+        {% else %}
+        <div style="font-size:.75rem;color:var(--gray-400);">No written comment.</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    {% else %}
+    <div class="no-ratings">No ratings received yet. Complete deliveries to get reviewed.</div>
+    {% endif %}
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{% extends 'admin/base.html' %}
+{% block title %}All Orders{% endblock %}
+{% block page_title %}All Orders{% endblock %}
+{% block content %}
+<div class="page-header"> <h2> All Orders</h2> <p>Manage and assign riders to orders.</p>
+</div>
+<div class="card"> {% if orders %} <div class="table-wrap"> <table> <thead> <tr> <th>#</th><th>Customer</th><th>Vendor</th><th>Total</th> <th>Payment</th><th>Status</th><th>Rider</th><th>Date</th><th>Assign Rider</th> </tr> </thead> <tbody> {% for order in orders %} <tr> <td>#{{ order.id }}</td> <td>{{ order.customer.name }}</td> <td>{{ order.vendor.shop_name }}</td> <td>₱{{ '%.2f'|format(order.total) }}</td> <td><span class="badge badge-info">{{ order.payment_method|upper }}</span></td> <td> <span class="badge status-{{ order.status }}"> {{ order.status.replace('_',' ').title() }} </span> </td> <td>{{ order.rider.name if order.rider else '—' }}</td> <td>{{ order.created_at.strftime('%b %d') }}</td> <td> {% if order.status in ['ready_for_pickup','confirmed','preparing'] %} <form method="POST" action="{{ url_for('admin.assign_rider', order_id=order.id) }}"
+                  style="display:flex;gap:.3rem;"> <select name="rider_id" style="font-size:.8rem;padding:.3rem;border-radius:6px;border:1px solid #e5e7eb;"> <option value="">-- Select Rider --</option> {% for rider in riders %} <option value="{{ rider.id }}" {% if order.rider_id == rider.id %}selected{% endif %}> {{ rider.name }} </option> {% endfor %} </select> <button class="btn btn-primary btn-sm">Assign</button> </form> {% else %}—{% endif %} </td> </tr> {% endfor %} </tbody> </table> </div> {% else %} <p class="text-center text-gray" style="padding:2rem;">No orders yet.</p> {% endif %}
+</div>
+{% endblock %}

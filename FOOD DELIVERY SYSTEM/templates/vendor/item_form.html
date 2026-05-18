@@ -1,0 +1,222 @@
+{% extends 'vendor/base.html' %}
+{% block title %}{{ 'Edit' if item else 'Add' }} Item{% endblock %}
+{% block page_title %}{{ 'Edit' if item else 'Add' }} Menu Item{% endblock %}
+{% block content %}
+
+<div class="page-header flex-between" style="margin-bottom:1.5rem;">
+  <h2>{{ 'Edit Item' if item else 'Add New Item' }}</h2>
+  <a href="{{ url_for('vendor.items') }}" class="btn btn-outline">Back to Items</a>
+</div>
+
+<div class="card" style="max-width:620px;">
+  <form method="POST" enctype="multipart/form-data">
+
+    <div class="form-group">
+      <label>Item Name *</label>
+      <input type="text" name="name" value="{{ item.name if item else '' }}"
+             required placeholder="e.g. Adobo Chicken">
+    </div>
+
+    <div class="form-group">
+      <label>Description</label>
+      <textarea name="description" rows="3"
+                placeholder="Describe the dish — ingredients, preparation style...">{{ item.description if item else '' }}</textarea>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Price (₱) *</label>
+        <input type="number" name="price" step="0.01" min="0"
+               value="{{ item.price if item else '' }}"
+               required placeholder="0.00">
+      </div>
+      <div class="form-group">
+        <label>Category</label>
+        <select name="category_id">
+          <option value="">-- No Category --</option>
+          {% for cat in categories %}
+          <option value="{{ cat.id }}" {% if item and item.category_id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <!-- Image upload box -->
+    <div class="form-group">
+      <label>Item Image</label>
+
+      {% if item and item.image %}
+      <div style="margin-bottom:.85rem;display:flex;align-items:center;gap:1rem;background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:.75rem;">
+        <img src="{{ url_for('static', filename=item.image) }}"
+             style="width:80px;height:60px;object-fit:cover;border-radius:8px;flex-shrink:0;">
+        <div>
+          <div style="font-size:.82rem;font-weight:600;color:#111827;">Current image</div>
+          <div style="font-size:.76rem;color:#6b7280;">Upload a new image below to replace it</div>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="upload-box" id="imgBox" data-input="imgInput">
+        <div id="imgBox_placeholder">
+          <div class="upload-box-icon">
+            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+          </div>
+          <div class="upload-box-title">Click to upload image</div>
+          <div class="upload-box-sub">JPG, PNG, WebP — max 16MB</div>
+        </div>
+        <div class="upload-box-preview" id="imgBox_preview" style="display:none;"></div>
+      </div>
+      <input type="file" id="imgInput" name="image" accept="image/*" style="display:none"
+             onchange="handleUpload(this,'imgBox')">
+    </div>
+
+    <div class="flex gap-1" style="margin-top:1.25rem;">
+      <button type="submit" class="btn btn-primary">{{ 'Update Item' if item else 'Add Item' }}</button>
+      <a href="{{ url_for('vendor.items') }}" class="btn btn-outline">Cancel</a>
+    </div>
+  </form>
+</div>
+
+{% if item %}
+<!--  ADD-ONS SECTION  -->
+<div class="card" style="max-width:700px;margin-top:1.5rem;">
+  <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;margin-bottom:1rem;">
+    Add-On Groups
+    <span style="font-size:.7rem;font-weight:400;text-transform:none;letter-spacing:0;color:#9ca3af;margin-left:.5rem;">
+      — Let customers customize their order (e.g. Size, Extras, Drink)
+    </span>
+  </div>
+
+  {% for group in item.addon_groups %}
+  <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:1rem;margin-bottom:1rem;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
+      <div>
+        <span style="font-weight:700;font-size:.9rem;color:#111827;">{{ group.name }}</span>
+        {% if group.required %}<span style="margin-left:.5rem;font-size:.68rem;font-weight:700;background:#fef2f2;color:#b91c1c;border-radius:20px;padding:.15rem .55rem;">Required</span>{% endif %}
+        <span style="margin-left:.4rem;font-size:.7rem;color:#9ca3af;">
+          — max {{ group.max_selections }} selection{{ 's' if group.max_selections > 1 }}
+        </span>
+      </div>
+      <form method="POST" action="{{ url_for('vendor.addon_group_delete', group_id=group.id) }}"
+            onsubmit="return confirm('Delete this group and all its options?')">
+        <button type="submit" class="btn btn-outline btn-sm" style="color:#dc2626;border-color:#fca5a5;font-size:.72rem;">Delete Group</button>
+      </form>
+    </div>
+
+    <!-- Existing options -->
+    {% if group.options %}
+    <div style="margin-bottom:.75rem;">
+      {% for opt in group.options %}
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:.4rem .65rem;background:#fff;border:1px solid #e5e7eb;border-radius:7px;margin-bottom:.35rem;">
+        <div style="font-size:.82rem;color:#374151;">
+          {{ opt.name }}
+          {% if opt.price > 0 %}
+          <span style="color:#16a34a;font-weight:600;margin-left:.4rem;">+&#8369;{{ '%.2f'|format(opt.price) }}</span>
+          {% else %}
+          <span style="color:#9ca3af;font-size:.75rem;margin-left:.4rem;">free</span>
+          {% endif %}
+        </div>
+        <form method="POST" action="{{ url_for('vendor.addon_delete', addon_id=opt.id) }}"
+              onsubmit="return confirm('Remove this option?')">
+          <button type="submit" style="border:none;background:none;color:#dc2626;cursor:pointer;font-size:.8rem;font-weight:600;padding:.2rem .5rem;">Remove</button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Add option -->
+    <form method="POST" action="{{ url_for('vendor.addon_add', group_id=group.id) }}"
+          style="display:flex;gap:.5rem;align-items:flex-end;">
+      <div style="flex:1;">
+        <label style="font-size:.72rem;font-weight:600;color:#6b7280;display:block;margin-bottom:.25rem;">Option Name</label>
+        <input type="text" name="name" placeholder="e.g. Large, Extra Cheese" required
+               style="width:100%;padding:.4rem .6rem;border:1px solid #d1d5db;border-radius:7px;font-size:.82rem;">
+      </div>
+      <div style="width:110px;">
+        <label style="font-size:.72rem;font-weight:600;color:#6b7280;display:block;margin-bottom:.25rem;">Extra Price (&#8369;)</label>
+        <input type="number" name="price" value="0" min="0" step="0.01"
+               style="width:100%;padding:.4rem .6rem;border:1px solid #d1d5db;border-radius:7px;font-size:.82rem;">
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm" style="white-space:nowrap;">Add Option</button>
+    </form>
+  </div>
+  {% endfor %}
+
+  {% if not item.addon_groups %}
+  <div style="text-align:center;padding:1.5rem;color:#9ca3af;font-size:.82rem;border:2px dashed #e5e7eb;border-radius:10px;margin-bottom:1rem;">
+    No add-on groups yet. Add one below to let customers customize this item.
+  </div>
+  {% endif %}
+
+  <!-- Add new group -->
+  <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:1rem;">
+    <div style="font-size:.74rem;font-weight:700;color:#166534;margin-bottom:.75rem;">Add New Group</div>
+    <form method="POST" action="{{ url_for('vendor.addon_group_add', item_id=item.id) }}">
+      <div style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:flex-end;">
+        <div style="flex:1;min-width:150px;">
+          <label style="font-size:.72rem;font-weight:600;color:#374151;display:block;margin-bottom:.25rem;">Group Name *</label>
+          <input type="text" name="name" required placeholder="e.g. Size, Extras, Drink"
+                 style="width:100%;padding:.4rem .6rem;border:1px solid #d1d5db;border-radius:7px;font-size:.82rem;">
+        </div>
+        <div style="width:120px;">
+          <label style="font-size:.72rem;font-weight:600;color:#374151;display:block;margin-bottom:.25rem;">Max Selections</label>
+          <input type="number" name="max_selections" value="1" min="1" max="10"
+                 style="width:100%;padding:.4rem .6rem;border:1px solid #d1d5db;border-radius:7px;font-size:.82rem;">
+        </div>
+        <div style="display:flex;align-items:center;gap:.4rem;padding-bottom:.1rem;">
+          <input type="checkbox" name="required" value="1" id="groupRequired"
+                 style="width:15px;height:15px;">
+          <label for="groupRequired" style="font-size:.8rem;color:#374151;cursor:pointer;">Required</label>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">Create Group</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<script>
+function handleUpload(input, boxId) {
+  const box = document.getElementById(boxId);
+  const placeholder = document.getElementById(boxId + '_placeholder');
+  const preview = document.getElementById(boxId + '_preview');
+  const file = input.files[0];
+  if (!file) return;
+  box.classList.add('has-file');
+  if (file.type.startsWith('image/')) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      preview.innerHTML = '<img src="' + e.target.result + '"><div class="upload-filename" style="margin-top:.4rem;">' + file.name + '</div>';
+      preview.style.display = '';
+      placeholder.style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+  } else {
+    preview.innerHTML = '<div class="upload-filename">' + file.name + '</div>';
+    preview.style.display = '';
+    placeholder.style.display = 'none';
+  }
+}
+document.querySelectorAll('.upload-box').forEach(box => {
+  box.addEventListener('dragover', e => { e.preventDefault(); box.classList.add('dragover'); });
+  box.addEventListener('dragleave', () => box.classList.remove('dragover'));
+  box.addEventListener('drop', e => {
+    e.preventDefault(); box.classList.remove('dragover');
+    const input = document.getElementById(box.dataset.input);
+    if (!input || !e.dataTransfer.files.length) return;
+    const dt = new DataTransfer();
+    dt.items.add(e.dataTransfer.files[0]);
+    input.files = dt.files;
+    handleUpload(input, box.id);
+  });
+  box.addEventListener('click', () => {
+    const input = document.getElementById(box.dataset.input);
+    if (input) input.click();
+  });
+});
+</script>
+{% endblock %}
