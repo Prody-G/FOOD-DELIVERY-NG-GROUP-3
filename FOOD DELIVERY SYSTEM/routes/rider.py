@@ -65,6 +65,10 @@ def apply():
             flash('Email already registered.', 'error')
             return redirect(url_for('rider.apply'))
 
+        if phone and not (phone.isdigit() and len(phone) == 11 and phone.startswith('09')):
+            flash('Invalid phone number. Must be 11 digits starting with 09.', 'error')
+            return redirect(url_for('rider.apply'))
+
         full_location = f'{location}, {rider_city}' if location else rider_city
 
         doc_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'rider_docs')
@@ -198,6 +202,10 @@ def dashboard():
     # Upcoming shifts
     upcoming_shifts = RiderShift.query.filter_by(rider_id=rider.id, status='booked').filter(
         RiderShift.shift_date >= date.today()).order_by(RiderShift.shift_date).limit(3).all()
+        
+    from models import Vendor
+    active_vendors = Vendor.query.filter_by(status='active').order_by(Vendor.shop_name).all()
+        
     return render_template('rider/dashboard.html', rider=rider,
                            active_orders=active_orders,
                            available_orders=available_orders,
@@ -211,8 +219,26 @@ def dashboard():
                            week_deliveries=week_deliveries,
                            completion_rate=completion_rate,
                            total_delivered=total_delivered,
-                           upcoming_shifts=upcoming_shifts)
+                           upcoming_shifts=upcoming_shifts,
+                           active_vendors=active_vendors)
 
+
+@rider_bp.route('/update-location', methods=['POST'])
+@rider_required
+def update_location():
+    rider = Rider.query.get(session['rider_id'])
+    data = request.get_json(silent=True) or {}
+    lat = data.get('lat')
+    lng = data.get('lng')
+    if lat and lng:
+        try:
+            rider.current_lat = float(lat)
+            rider.current_lng = float(lng)
+            db.session.commit()
+            return jsonify({'success': True})
+        except ValueError:
+            pass
+    return jsonify({'success': False}), 400
 
 @rider_bp.route('/toggle-online', methods=['POST'])
 @rider_required
@@ -283,11 +309,18 @@ def mark_delivered(order_id):
         flash('Unauthorized.', 'error')
         return redirect(url_for('rider.dashboard'))
     proof_file = request.files.get('proof_photo')
-    if proof_file and proof_file.filename:
-        proof_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'delivery_proofs')
-        proof_path = save_rider_doc(proof_file, proof_folder)
-        if proof_path:
-            order.proof_of_delivery = proof_path
+    if not proof_file or not proof_file.filename:
+        flash('Proof of delivery photo is required to complete the delivery.', 'error')
+        return redirect(url_for('rider.dashboard'))
+        
+    proof_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'delivery_proofs')
+    proof_path = save_rider_doc(proof_file, proof_folder)
+    if proof_path:
+        order.proof_of_delivery = proof_path
+    else:
+        flash('Invalid proof photo file format.', 'error')
+        return redirect(url_for('rider.dashboard'))
+
     order.status = 'delivered'
     order.updated_at = datetime.utcnow()
     order.payment_status = 'paid'  # mark paid for both COD (collected) and GCash (online)
@@ -312,17 +345,23 @@ def mark_delivered(order_id):
 @rider_required
 def cashout():
     rider = Rider.query.get(session['rider_id'])
+    vendor_id = request.form.get('vendor_id')
+    
+    if not vendor_id:
+        flash('Please select a vendor for remittance/cashout.', 'error')
+        return redirect(url_for('rider.dashboard'))
+
     pending = RiderEarning.query.filter_by(rider_id=rider.id, status='pending').all()
     total = round(sum(e.rider_earnings for e in pending), 2)
     if total <= 0:
         flash('No pending earnings to cash out.', 'error')
         return redirect(url_for('rider.dashboard'))
-    new_cashout = RiderCashout(rider_id=rider.id, amount=total, status='pending')
+    new_cashout = RiderCashout(rider_id=rider.id, vendor_id=vendor_id, amount=total, status='pending')
     db.session.add(new_cashout)
     for e in pending:
         e.status = 'cashed_out'
     db.session.commit()
-    flash(f'Cash out request of ₱{total:.2f} submitted.', 'success')
+    flash(f'Cash out request of ₱{total:.2f} submitted to selected vendor.', 'success')
     return redirect(url_for('rider.dashboard'))
 
 

@@ -269,7 +269,13 @@ a{color:inherit;text-decoration:none;}
         <div class="wallet-pending">Pending cashout: <strong>&#8369;{{ '%.2f'|format(total_pending) }}</strong></div>
         <div class="wallet-fee-note">20% platform fee already deducted from each delivery</div>
       </div>
-      <form method="POST" action="{{ url_for('rider.cashout') }}">
+      <form method="POST" action="{{ url_for('rider.cashout') }}" style="display:flex; flex-direction:column; gap:0.5rem; align-items:flex-end;">
+        <select name="vendor_id" required style="padding:0.25rem 0.5rem; border-radius:6px; border:none; outline:none; font-size:0.75rem; color:var(--gray-800); width:100%; max-width:140px;">
+          <option value="">Select Vendor...</option>
+          {% for v in active_vendors %}
+          <option value="{{ v.id }}">{{ v.shop_name }}</option>
+          {% endfor %}
+        </select>
         <button type="submit" class="btn-cashout" {{ 'disabled' if total_pending <= 0 }}>Cash Out</button>
       </form>
     </div>
@@ -461,7 +467,7 @@ a{color:inherit;text-decoration:none;}
             <div class="proof-zone-hint">Click to select a photo</div>
           </div>
         </div>
-        <input type="file" name="proof_photo" id="proofInput{{ order.id }}" accept="image/*" hidden
+        <input type="file" name="proof_photo" id="proofInput{{ order.id }}" accept="image/*" hidden required
                onchange="previewProof('{{ order.id }}', this)">
         <button type="submit" class="btn-success-full">Confirm Delivered</button>
       </form>
@@ -607,6 +613,24 @@ chatOrders.forEach(oid => {
   loadChat(oid);
   setInterval(() => loadChat(oid), 5000);
 });
+
+// Real-time location tracking
+if (navigator.geolocation) {
+  navigator.geolocation.watchPosition(position => {
+    fetch('/rider/update-location', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        lat: position.coords.latitude,
+        lng: position.coords.longitude
+      })
+    }).catch(err => console.error('Error updating location:', err));
+  }, err => console.error('Geolocation error:', err), {
+    enableHighAccuracy: true,
+    maximumAge: 10000,
+    timeout: 5000
+  });
+}
 </script>
 </body>
 </html>

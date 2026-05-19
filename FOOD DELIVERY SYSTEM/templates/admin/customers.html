@@ -1,13 +1,72 @@
 {% extends 'admin/base.html' %}
-{% block title %}Customer Management{% endblock %}
-{% block page_title %}Customer Management{% endblock %}
+{% block title %}Customers{% endblock %}
+{% block page_title %}Customers{% endblock %}
 {% block content %}
-<div class="page-header"> <h2> Customer Management</h2> <p>View, edit, suspend or ban customer accounts.</p>
-</div> <div class="card"> <div class="card-header"> <span class="card-title">All Customers ({{ customers|length }})</span> </div> {% if customers %} <div class="table-wrap"> <table> <thead> <tr> <th>#</th><th>Name</th><th>Email</th><th>Phone</th> <th>Region</th><th>City</th><th>Status</th><th>Joined</th><th>Actions</th> </tr> </thead> <tbody> {% for c in customers %} <tr> <td>{{ c.id }}</td> <td><strong>{{ c.name }}</strong></td> <td>{{ c.email }}</td> <td>{{ c.phone or '—' }}</td> <td>{{ c.region or '—' }}</td> <td>{{ c.city or '—' }}</td> <td> <span class="badge
-              {% if c.status == 'active' %}badge-success
-              {% elif c.status == 'suspended' %}badge-warning
-              {% else %}badge-danger{% endif %}"> {{ c.status.title() }} </span> </td> <td>{{ c.created_at.strftime('%b %d, %Y') }}</td> <td> <div class="actions"> <a href="{{ url_for('admin.customer_edit', customer_id=c.id) }}"
-                 class="btn btn-info btn-sm"> Edit</a> {% if c.status == 'active' %} <form method="POST" action="{{ url_for('admin.customer_suspend', customer_id=c.id) }}"> <button class="btn btn-warning btn-sm">⏸ Suspend</button> </form> <form method="POST" action="{{ url_for('admin.customer_ban', customer_id=c.id) }}"> <button class="btn btn-danger btn-sm"> Ban</button> </form> {% else %} <form method="POST" action="{{ url_for('admin.customer_activate', customer_id=c.id) }}"> <button class="btn btn-primary btn-sm"> Activate</button> </form> {% endif %} <form method="POST" action="{{ url_for('admin.customer_delete', customer_id=c.id) }}"
-                    onsubmit="return confirm('Permanently delete this customer?')"> <button class="btn btn-danger btn-sm"></button> </form> </div> </td> </tr> {% endfor %} </tbody> </table> </div> {% else %} <p class="text-center text-gray" style="padding:2rem;">No customers yet.</p> {% endif %}
+<div class="page-header flex-between">
+  <h2>Customer Accounts</h2>
+</div>
+
+<div class="tabs" style="margin-bottom:1rem; border-bottom:1px solid #e5e7eb; display:flex; gap:1.5rem;">
+  <a href="?tab=pending" style="padding:0.5rem 0; font-weight:600; text-decoration:none; color: {% if tab == 'pending' %}var(--green){% else %}var(--gray){% endif %}; border-bottom: 2px solid {% if tab == 'pending' %}var(--green){% else %}transparent{% endif %};">Pending IDs</a>
+  <a href="?tab=all" style="padding:0.5rem 0; font-weight:600; text-decoration:none; color: {% if tab == 'all' %}var(--green){% else %}var(--gray){% endif %}; border-bottom: 2px solid {% if tab == 'all' %}var(--green){% else %}transparent{% endif %};">All Customers</a>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Phone</th>
+          <th>Status</th>
+          <th>ID Document</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in customers %}
+        <tr>
+          <td>#{{ c.id }}</td>
+          <td>{{ c.name }}</td>
+          <td>{{ c.email }}</td>
+          <td>{{ c.phone or '-' }}</td>
+          <td>
+            {% if c.status == 'active' %}
+              <span class="badge" style="background:var(--green-pale); color:var(--green-dark);">Active</span>
+            {% elif c.status == 'pending' %}
+              <span class="badge" style="background:#fef3c7; color:#ea580c;">Pending</span>
+            {% else %}
+              <span class="badge" style="background:#fee2e2; color:var(--danger);">{{ c.status.title() }}</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if c.id_document %}
+              <a href="{{ url_for('static', filename=c.id_document) }}" target="_blank" style="color:var(--info); font-size:0.85rem; font-weight:600;">View ID</a>
+            {% else %}
+              <span style="color:var(--gray);">-</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if c.status == 'pending' %}
+            <div class="flex gap-1" style="margin-bottom:0.5rem;">
+              <form method="POST" action="{{ url_for('admin.customer_approve', customer_id=c.id) }}" style="display:inline;">
+                <button type="submit" class="btn" style="background:var(--green); color:#fff; padding:0.25rem 0.5rem; font-size:0.75rem;">Approve</button>
+              </form>
+              <form method="POST" action="{{ url_for('admin.customer_reject', customer_id=c.id) }}" style="display:inline;">
+                <button type="submit" class="btn" style="background:var(--danger); color:#fff; padding:0.25rem 0.5rem; font-size:0.75rem;">Reject</button>
+              </form>
+            </div>
+            {% endif %}
+            <a href="{{ url_for('admin.customer_edit', customer_id=c.id) }}" class="btn btn-outline" style="padding:0.25rem 0.5rem; font-size:0.75rem;">Edit</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" style="text-align:center;color:var(--gray);padding:2rem;">No customers found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}

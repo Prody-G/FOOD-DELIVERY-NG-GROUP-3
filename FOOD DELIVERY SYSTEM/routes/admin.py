@@ -78,6 +78,10 @@ def rider_add():
         if Rider.query.filter_by(email=email).first():
             flash('Email already registered.', 'error')
             return redirect(url_for('admin.rider_add'))
+        if phone and not (phone.isdigit() and len(phone) == 11 and phone.startswith('09')):
+            flash('Invalid phone number. Must be 11 digits starting with 09.', 'error')
+            return redirect(url_for('admin.riders'))
+
         rider = Rider(name=name, email=email, phone=phone,
                       vehicle_type=vehicle_type, license_number=license_number,
                       status='approved')
@@ -94,9 +98,13 @@ def rider_add():
 def rider_edit(rider_id):
     rider = Rider.query.get_or_404(rider_id)
     if request.method == 'POST':
+        phone = request.form.get('phone', '').strip()
+        if phone and not (phone.isdigit() and len(phone) == 11 and phone.startswith('09')):
+            flash('Invalid phone number. Must be 11 digits starting with 09.', 'error')
+            return redirect(url_for('admin.riders'))
         rider.name = request.form.get('name', rider.name).strip()
         rider.email = request.form.get('email', rider.email).strip()
-        rider.phone = request.form.get('phone', rider.phone or '').strip()
+        rider.phone = phone
         rider.vehicle_type = request.form.get('vehicle_type', rider.vehicle_type or '')
         rider.license_number = request.form.get('license_number', rider.license_number or '').strip()
         rider.status = request.form.get('status', rider.status)
@@ -155,8 +163,30 @@ def rider_delete(rider_id):
 @admin_bp.route('/customers')
 @admin_required
 def customers():
-    customers_list = Customer.query.order_by(Customer.created_at.desc()).all()
-    return render_template('admin/customers.html', customers=customers_list)
+    tab = request.args.get('tab', 'all')
+    if tab == 'pending':
+        customers_list = Customer.query.filter_by(status='pending').order_by(Customer.created_at.desc()).all()
+    else:
+        customers_list = Customer.query.order_by(Customer.created_at.desc()).all()
+    return render_template('admin/customers.html', customers=customers_list, tab=tab)
+
+@admin_bp.route('/customers/<int:customer_id>/approve', methods=['POST'])
+@admin_required
+def customer_approve(customer_id):
+    customer = Customer.query.get_or_404(customer_id)
+    customer.status = 'active'
+    db.session.commit()
+    flash('Customer approved and activated.', 'success')
+    return redirect(url_for('admin.customers', tab='pending'))
+
+@admin_bp.route('/customers/<int:customer_id>/reject', methods=['POST'])
+@admin_required
+def customer_reject(customer_id):
+    customer = Customer.query.get_or_404(customer_id)
+    customer.status = 'rejected'
+    db.session.commit()
+    flash('Customer application rejected.', 'success')
+    return redirect(url_for('admin.customers', tab='pending'))
 
 
 @admin_bp.route('/customers/<int:customer_id>/edit', methods=['GET', 'POST'])
@@ -164,9 +194,13 @@ def customers():
 def customer_edit(customer_id):
     customer = Customer.query.get_or_404(customer_id)
     if request.method == 'POST':
+        phone = request.form.get('phone', '').strip()
+        if phone and not (phone.isdigit() and len(phone) == 11 and phone.startswith('09')):
+            flash('Invalid phone number. Must be 11 digits starting with 09.', 'error')
+            return redirect(url_for('admin.customers'))
         customer.name = request.form.get('name', customer.name).strip()
         customer.email = request.form.get('email', customer.email).strip()
-        customer.phone = request.form.get('phone', customer.phone or '').strip()
+        customer.phone = phone
         customer.address = request.form.get('address', customer.address or '').strip()
         customer.province = request.form.get('province', customer.province or '').strip()
         customer.region = request.form.get('region', customer.region or '').strip()

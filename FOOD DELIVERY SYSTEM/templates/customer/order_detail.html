@@ -125,6 +125,56 @@
     </div>
   </div>
   {% endif %}
+
+  {% if order.status == 'out_for_delivery' %}
+  <!-- Live Tracking Map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  
+  <div style="background:#fff; border:1px solid var(--gray-200); border-radius:12px; margin-bottom:1rem; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.06);">
+    <div style="padding:0.75rem 1rem; background:var(--gray-50); border-bottom:1px solid var(--gray-200); font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--gray-400);">Live Rider Tracking</div>
+    <div id="trackingMap" style="height:300px; width:100%;"></div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var map = L.map('trackingMap').setView([14.5547, 121.0244], 14); // Default to Makati CBD roughly
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OSM</a>'
+      }).addTo(map);
+
+      var riderMarker = null;
+      // Use a distinct icon for rider
+      var riderIcon = L.divIcon({
+        className: 'custom-div-icon',
+        html: "<div style='background-color:var(--blue);width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 4px rgba(0,0,0,0.4);'></div>",
+        iconSize: [14, 14],
+        iconAnchor: [7, 7]
+      });
+
+      function updateRiderLocation() {
+        fetch('/customer/orders/{{ order.id }}/tracking')
+          .then(res => res.json())
+          .then(data => {
+            if (data.lat && data.lng) {
+              var pos = [data.lat, data.lng];
+              if (!riderMarker) {
+                riderMarker = L.marker(pos, {icon: riderIcon}).addTo(map);
+                map.setView(pos, 16);
+              } else {
+                riderMarker.setLatLng(pos);
+              }
+            }
+          })
+          .catch(err => console.error("Error fetching rider location", err));
+      }
+
+      updateRiderLocation();
+      setInterval(updateRiderLocation, 5000);
+    });
+  </script>
+  {% endif %}
   {% if order.rider and order.status == 'out_for_delivery' and order.delivery_phase == 'going_to_customer' %}
   <div class="chat-widget">
     <div class="chat-hd">Chat with {{ order.rider.name.split(' ')[0] }}</div>
@@ -141,6 +191,22 @@
   loadChat();setInterval(loadChat,5000);
   </script>
   {% endif %}
+  {% if order.status == 'delivered' %}
+  <div style="background:#dcfce7; border:1px solid #4ade80; color:#16a34a; padding:1rem; border-radius:12px; margin-bottom:1.5rem; text-align:center;">
+    <h3 style="margin:0 0 0.5rem 0; font-size:1.1rem; display:flex; align-items:center; justify-content:center; gap:0.5rem;">
+      <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+      Your order has been delivered successfully!
+    </h3>
+    <p style="margin:0; font-size:0.85rem; color:#15803d;">Thank you for ordering with UniFood.</p>
+  </div>
+  {% if order.proof_of_delivery %}
+  <div style="background:#fff; border:1px solid var(--gray-200); border-radius:12px; padding:1rem; margin-bottom:1.5rem; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.06);">
+    <div style="font-size:0.8rem; font-weight:700; color:var(--gray-500); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.75rem;">Proof of Delivery</div>
+    <img src="{{ url_for('static', filename=order.proof_of_delivery) }}" style="max-width:100%; border-radius:8px; max-height:250px; object-fit:contain;">
+  </div>
+  {% endif %}
+  {% endif %}
+
   {% if order.status == 'delivered' and order.rider %}
     {% if can_rate %}
     <div class="rating-card">
@@ -160,14 +226,6 @@
     {% else %}
     <div class="rated-badge">You have already rated this delivery. Thank you!</div>
     {% endif %}
-  {% endif %}
-  {% if order.proof_of_delivery %}
-  <div style="background:#fff;border:1px solid var(--gray-200);border-radius:12px;padding:.85rem 1rem;margin-bottom:1rem;box-shadow:0 1px 3px rgba(0,0,0,.06);">
-    <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--gray-400);margin-bottom:.5rem;">Proof of Delivery</div>
-    <a href="{{ url_for('static', filename=order.proof_of_delivery) }}" target="_blank">
-      <img src="{{ url_for('static', filename=order.proof_of_delivery) }}" alt="Proof" style="max-width:100%;border-radius:8px;">
-    </a>
-  </div>
   {% endif %}
   <div class="od-grid">
     <div class="od-card">

@@ -78,6 +78,10 @@ def register():
             flash('Please provide a reason / proposal for your application.', 'error')
             return redirect(url_for('vendor.register'))
 
+        if phone and not (phone.isdigit() and len(phone) == 11 and phone.startswith('09')):
+            flash('Invalid phone number. Must be 11 digits starting with 09.', 'error')
+            return redirect(url_for('vendor.register'))
+
         vendor = Vendor(shop_name=shop_name, email=email, phone=phone,
                         address=address, business_address=business_address,
                         business_city=request.form.get('business_city', '').strip(),
@@ -165,8 +169,12 @@ def shop():
     ACCEPTED_CITIES = {'makati', 'taguig', 'makati city', 'taguig city'}
     vendor = Vendor.query.get(session['vendor_id'])
     if request.method == 'POST':
+        phone = request.form.get('phone', '').strip()
+        if phone and not (phone.isdigit() and len(phone) == 11 and phone.startswith('09')):
+            flash('Invalid phone number. Must be 11 digits starting with 09.', 'error')
+            return redirect(url_for('vendor.shop'))
         vendor.shop_name    = request.form.get('shop_name', vendor.shop_name).strip()
-        vendor.phone        = request.form.get('phone', vendor.phone or '').strip()
+        vendor.phone        = phone
         vendor.address      = request.form.get('address', vendor.address or '').strip()
         vendor.description  = request.form.get('description', vendor.description or '').strip()
         vendor.shop_type    = request.form.get('shop_type', vendor.shop_type or 'restaurant').strip()
@@ -401,6 +409,46 @@ def order_ready(order_id):
         db.session.commit()
         flash('Order is ready — seeking a rider!', 'success')
     return redirect(url_for('vendor.orders'))
+
+
+# ── REMITTANCES ─────────────────────────────────────────────────────────────
+
+@vendor_bp.route('/remittances')
+@vendor_required
+def remittances():
+    from models import RiderCashout
+    vendor_id = session['vendor_id']
+    vendor = Vendor.query.get(vendor_id)
+    cashouts = RiderCashout.query.filter_by(vendor_id=vendor_id).order_by(RiderCashout.requested_at.desc()).all()
+    return render_template('vendor/remittances.html', cashouts=cashouts, vendor=vendor)
+
+@vendor_bp.route('/remittances/<int:cashout_id>/approve', methods=['POST'])
+@vendor_required
+def approve_remittance(cashout_id):
+    from models import RiderCashout
+    cashout = RiderCashout.query.get_or_404(cashout_id)
+    if cashout.vendor_id != session['vendor_id']:
+        flash('Unauthorized.', 'error')
+        return redirect(url_for('vendor.remittances'))
+    cashout.status = 'completed'
+    cashout.processed_at = datetime.utcnow()
+    db.session.commit()
+    flash(f'Remittance of ₱{cashout.amount:.2f} approved.', 'success')
+    return redirect(url_for('vendor.remittances'))
+
+@vendor_bp.route('/remittances/<int:cashout_id>/reject', methods=['POST'])
+@vendor_required
+def reject_remittance(cashout_id):
+    from models import RiderCashout
+    cashout = RiderCashout.query.get_or_404(cashout_id)
+    if cashout.vendor_id != session['vendor_id']:
+        flash('Unauthorized.', 'error')
+        return redirect(url_for('vendor.remittances'))
+    cashout.status = 'rejected'
+    cashout.processed_at = datetime.utcnow()
+    db.session.commit()
+    flash(f'Remittance of ₱{cashout.amount:.2f} rejected.', 'success')
+    return redirect(url_for('vendor.remittances'))
 
 
 # ── ANALYTICS ────────────────────────────────────────────────────────────────

@@ -50,7 +50,7 @@ body { background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0f4c2a 100%
       </div>
       <div class="form-group">
         <label>Phone Number</label>
-        <input type="text" name="phone" placeholder="09XXXXXXXXX">
+        <input type="text" name="phone" placeholder="09XXXXXXXXX" pattern="^09\d{9}$" maxlength="11" title="Please enter a valid 11-digit Philippine mobile number starting with 09">
       </div>
     </div>
 

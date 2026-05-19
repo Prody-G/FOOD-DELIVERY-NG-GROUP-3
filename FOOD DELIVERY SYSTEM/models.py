@@ -151,7 +151,8 @@ class Customer(db.Model):
     region = db.Column(db.String(100))
     city = db.Column(db.String(100))
     barangay = db.Column(db.String(100))
-    status = db.Column(db.String(20), default='active')  # active, suspended, banned
+    status = db.Column(db.String(20), default='pending')  # active, suspended, banned, pending
+    id_document = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     orders = db.relationship('Order', backref='customer', lazy=True)
@@ -189,6 +190,8 @@ class Rider(db.Model):
     rejection_reason = db.Column(db.Text)
     is_online = db.Column(db.Boolean, default=False)
     location = db.Column(db.String(255))
+    current_lat = db.Column(db.Float, nullable=True)
+    current_lng = db.Column(db.Float, nullable=True)
     avg_rating = db.Column(db.Float, default=5.0)
     total_ratings = db.Column(db.Integer, default=0)
     total_accepted = db.Column(db.Integer, default=0)
@@ -432,6 +435,7 @@ class RiderCashout(db.Model):
     __tablename__ = 'rider_cashouts'
     id = db.Column(db.Integer, primary_key=True)
     rider_id = db.Column(db.Integer, db.ForeignKey('riders.id'), nullable=False)
+    vendor_id = db.Column(db.Integer, db.ForeignKey('vendors.id'), nullable=True)
     amount = db.Column(db.Float, default=0)
     # pending = requested; completed = paid out; rejected = denied
     status = db.Column(db.String(20), default='pending')
@@ -440,6 +444,7 @@ class RiderCashout(db.Model):
     notes = db.Column(db.Text)
 
     rider = db.relationship('Rider', backref='cashouts')
+    vendor = db.relationship('Vendor', backref='cashouts')
 
 
 SHIFT_ZONES = {

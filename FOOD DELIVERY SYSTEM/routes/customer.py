@@ -1,13 +1,29 @@
 from flask import (Blueprint, render_template, request, redirect, url_for,
-                   session, flash, jsonify)
+                   session, flash, jsonify, current_app)
 from functools import wraps
 from models import (db, Customer, Vendor, MenuItem, Category, Order, OrderItem,
                     Voucher, VoucherUsage, PasswordResetRequest, RiderRating, ChatMessage,
                     get_shipping_fee)
 from datetime import datetime
+import os
+import uuid
 
 customer_bp = Blueprint('customer', __name__)
 
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'pdf'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def save_upload(file, subfolder):
+    if file and allowed_file(file.filename):
+        ext = file.filename.rsplit('.', 1)[1].lower()
+        unique_name = f"{uuid.uuid4().hex}.{ext}"
+        folder = os.path.join(current_app.config['UPLOAD_FOLDER'], subfolder)
+        os.makedirs(folder, exist_ok=True)
+        file.save(os.path.join(folder, unique_name))
+        return f"uploads/{subfolder}/{unique_name}"
+    return None
 
 def customer_required(f):
     @wraps(f)
@@ -45,14 +61,26 @@ def register():
             flash('Email already registered.', 'error')
             return redirect(url_for('customer.register'))
 
-        customer = Customer(name=name, email=email, phone=phone)
+        if phone and not (phone.isdigit() and len(phone) == 11 and phone.startswith('09')):
+            flash('Invalid phone number. Must be 11 digits starting with 09.', 'error')
+            return redirect(url_for('customer.register'))
+
+        id_doc_file = request.files.get('id_document')
+        if not id_doc_file or not id_doc_file.filename:
+            flash('Valid ID or COR is required to prevent fake bookings.', 'error')
+            return redirect(url_for('customer.register'))
+
+        id_path = save_upload(id_doc_file, 'delivery_proofs') # Reusing existing subfolder or make 'ids' if needed, but let's use 'delivery_proofs' for now or 'ids'
+        if not id_path:
+            flash('Invalid file format for ID.', 'error')
+            return redirect(url_for('customer.register'))
+
+        customer = Customer(name=name, email=email, phone=phone, status='pending', id_document=id_path)
         customer.set_password(password)
         db.session.add(customer)
         db.session.commit()
-        session['customer_id'] = customer.id
-        session['customer_name'] = customer.name
-        flash('Account created! Welcome, ' + name + '!', 'success')
-        return redirect(url_for('customer.landing'))
+        flash('Account created! Please wait for admin approval of your ID to activate your account.', 'success')
+        return redirect(url_for('customer.login'))
     return render_template('customer/register.html')
 
 
@@ -65,7 +93,9 @@ def login():
         password = request.form.get('password', '')
         customer = Customer.query.filter_by(email=email).first()
         if customer and customer.check_password(password):
-            if customer.status in ('suspended', 'banned'):
+            if customer.status == 'pending':
+                flash('Your account is awaiting admin approval of your ID.', 'error')
+            elif customer.status in ('suspended', 'banned'):
                 flash('Your account is ' + customer.status + '.', 'error')
             else:
                 session['customer_id'] = customer.id
@@ -89,8 +119,13 @@ def logout():
 def profile():
     customer = Customer.query.get(session['customer_id'])
     if request.method == 'POST':
-        customer.name = request.form.get('name', customer.name).strip()
-        customer.phone = request.form.get('phone', customer.phone or '').strip()
+        name = request.form.get('name', '').strip()
+        phone = request.form.get('phone', '').strip()
+        if phone and not (phone.isdigit() and len(phone) == 11 and phone.startswith('09')):
+            flash('Invalid phone number. Must be 11 digits starting with 09.', 'error')
+            return redirect(url_for('customer.profile'))
+        customer.name = name
+        customer.phone = phone
         customer.address = request.form.get('address', customer.address or '').strip()
         customer.province = request.form.get('province', customer.province or '').strip()
         customer.region = request.form.get('region', customer.region or '').strip()
@@ -295,6 +330,19 @@ def order_detail(order_id):
     return render_template('customer/order_detail.html', order=order,
                            has_rated=has_rated, can_rate=can_rate)
 
+
+@customer_bp.route('/customer/orders/<int:order_id>/tracking')
+@customer_required
+def order_tracking(order_id):
+    order = Order.query.get_or_404(order_id)
+    if order.customer_id != session['customer_id']:
+        return jsonify({'error': 'Unauthorized'}), 403
+    if not order.rider or not order.rider.current_lat:
+        return jsonify({'lat': None, 'lng': None})
+    return jsonify({
+        'lat': order.rider.current_lat,
+        'lng': order.rider.current_lng
+    })
 
 @customer_bp.route('/customer/orders/<int:order_id>/cancel', methods=['POST'])
 @customer_required

@@ -1,0 +1,58 @@
+{% extends 'vendor/base.html' %}
+{% block title %}Rider Remittances{% endblock %}
+{% block page_title %}Rider Remittances{% endblock %}
+{% block content %}
+<div class="page-header flex-between">
+  <h2>Rider Cashout Requests</h2>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Rider Name</th>
+          <th>Amount</th>
+          <th>Requested At</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cashout in cashouts %}
+        <tr>
+          <td>{{ cashout.rider.name }}</td>
+          <td style="font-weight:700; color:var(--blue);">₱{{ '%.2f'|format(cashout.amount) }}</td>
+          <td>{{ cashout.requested_at.strftime('%b %d, %Y %H:%M') }}</td>
+          <td>
+            {% if cashout.status == 'pending' %}
+              <span class="badge" style="background:#fef3c7; color:#ea580c;">Pending</span>
+            {% elif cashout.status == 'completed' %}
+              <span class="badge" style="background:var(--green-pale); color:var(--green-dark);">Completed</span>
+            {% else %}
+              <span class="badge" style="background:#fee2e2; color:var(--danger);">{{ cashout.status.title() }}</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if cashout.status == 'pending' %}
+            <div class="flex gap-1">
+              <form method="POST" action="{{ url_for('vendor.approve_remittance', cashout_id=cashout.id) }}" style="display:inline;">
+                <button type="submit" class="btn" style="background:var(--green); color:#fff; padding:0.25rem 0.5rem; font-size:0.75rem;">Approve</button>
+              </form>
+              <form method="POST" action="{{ url_for('vendor.reject_remittance', cashout_id=cashout.id) }}" style="display:inline;">
+                <button type="submit" class="btn" style="background:var(--danger); color:#fff; padding:0.25rem 0.5rem; font-size:0.75rem;">Reject</button>
+              </form>
+            </div>
+            {% else %}
+            <span style="font-size:0.75rem; color:var(--gray);">Processed {{ cashout.processed_at.strftime('%b %d, %Y') if cashout.processed_at else '' }}</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" style="text-align:center;color:var(--gray);padding:2rem;">No remittance requests found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

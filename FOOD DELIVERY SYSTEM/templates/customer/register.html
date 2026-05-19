@@ -20,7 +20,7 @@
       {% endfor %}
     {% endwith %}
 
-    <form method="POST">
+    <form method="POST" enctype="multipart/form-data">
       <div class="form-group">
         <label>Full Name *</label>
         <input type="text" name="name" required placeholder="Juan Dela Cruz">
@@ -31,7 +31,12 @@
       </div>
       <div class="form-group">
         <label>Phone Number</label>
-        <input type="text" name="phone" placeholder="09XXXXXXXXX">
+        <input type="text" name="phone" placeholder="09XXXXXXXXX" pattern="^09\d{9}$" maxlength="11" title="Please enter a valid 11-digit Philippine mobile number starting with 09">
+      </div>
+      <div class="form-group">
+        <label>Valid ID or COR *</label>
+        <input type="file" name="id_document" accept="image/*,.pdf" required>
+        <small style="color:var(--gray); font-size:0.75rem;">Upload a clear photo or PDF to prevent fake bookings.</small>
       </div>
       <div class="form-row">
         <div class="form-group">
